@@ -1,23 +1,45 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-  color-scheme: light dark;
-}
+/*
+ * Warm saffron / cream "Gurukula" theme. Light-only for a cohesive look
+ * (mirrors remix-of-gurukula-lms, whose player hardcodes the cream palette).
+ */
+@theme {
+  --color-background: #fff9ed; /* warm cream */
+  --color-foreground: #2b2621; /* near-black brown */
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-card: #fffcf4;
+  --color-card-foreground: #2b2621;
+
+  --color-primary: #a71c1c; /* deep temple red */
+  --color-primary-foreground: #fffcf4;
+
+  --color-secondary: #ede6dc; /* warm beige */
+  --color-secondary-foreground: #2b2621;
+
+  --color-muted: #eee8df;
+  --color-muted-foreground: #7c736b;
+
+  --color-accent: #e9e0d3;
+  --color-accent-foreground: #a71c1c;
+
+  --color-border: #ddd5c9;
+
+  /* Saffron highlights (active tabs, rows, accents). */
+  --color-saffron: #ffefd1;
+  --color-saffron-strong: #fff3d9;
+  --color-saffron-accent: #fa9e00;
+
+  /* Status colors. */
+  --color-success: #6b8a50; /* sage green */
+  --color-progress: #c99a2e; /* amber/gold */
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+:root {
+  color-scheme: light;
 }
 
 html,
@@ -26,5 +48,5 @@ body {
 }
 
 body {
-  @apply bg-neutral-50 text-neutral-900 antialiased dark:bg-neutral-950 dark:text-neutral-100;
+  @apply bg-background text-foreground antialiased;
 }

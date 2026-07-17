@@ -20,8 +20,8 @@ export function VideoRenderer({ videos }: { videos: VideoItem[] }) {
               onClick={() => setActive(i)}
               className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
                 i === active
-                  ? "bg-neutral-900 text-white dark:bg-white dark:text-neutral-900"
-                  : "bg-neutral-100 text-neutral-700 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-200 dark:hover:bg-neutral-700"
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-secondary text-secondary-foreground hover:bg-accent"
               }`}
             >
               {v.title || `Video ${i + 1}`}
@@ -32,9 +32,7 @@ export function VideoRenderer({ videos }: { videos: VideoItem[] }) {
       <SingleVideo video={video} />
       {video.title && <h3 className="text-lg font-semibold">{video.title}</h3>}
       {video.description && (
-        <p className="whitespace-pre-wrap text-sm text-neutral-600 dark:text-neutral-300">
-          {video.description}
-        </p>
+        <p className="whitespace-pre-wrap text-sm text-muted-foreground">{video.description}</p>
       )}
     </div>
   );

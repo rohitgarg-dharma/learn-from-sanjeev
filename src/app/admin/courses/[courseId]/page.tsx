@@ -26,8 +26,8 @@ export default function CourseEditorPage({
 
   if (loading) {
     return (
-      <div className="flex min-h-dvh items-center justify-center text-sm text-neutral-500">
-        Loading…
+      <div className="flex min-h-dvh items-center justify-center text-sm text-muted-foreground">
+        <span className="animate-pulse">Loading…</span>
       </div>
     );
   }
@@ -36,7 +36,7 @@ export default function CourseEditorPage({
     return (
       <div className="min-h-dvh">
         <AppHeader subtitle="Admin" />
-        <main className="mx-auto max-w-3xl px-6 py-16 text-center text-sm text-neutral-500">
+        <main className="mx-auto max-w-3xl px-6 py-16 text-center text-sm text-muted-foreground">
           Admins only.
         </main>
       </div>
@@ -69,15 +69,19 @@ function Editor({ courseId }: { courseId: string }) {
   if (error) {
     return (
       <main className="mx-auto max-w-4xl px-6 py-16">
-        <p className="text-sm text-red-500">{error}</p>
-        <Link href="/admin" className="mt-4 inline-block text-sm font-medium underline">
+        <p className="text-sm text-red-600">{error}</p>
+        <Link href="/admin" className="mt-4 inline-block text-sm font-medium text-primary underline">
           Back to admin
         </Link>
       </main>
     );
   }
   if (!course) {
-    return <p className="mx-auto max-w-4xl px-6 py-16 text-sm text-neutral-500">Loading…</p>;
+    return (
+      <p className="mx-auto max-w-4xl px-6 py-16 text-sm text-muted-foreground">
+        <span className="animate-pulse">Loading…</span>
+      </p>
+    );
   }
 
   const addChapter = async () => {
@@ -103,10 +107,10 @@ function Editor({ courseId }: { courseId: string }) {
   return (
     <main className="mx-auto flex max-w-4xl flex-col gap-8 px-4 py-8 sm:px-6">
       <div className="flex items-center justify-between">
-        <Link href="/admin" className="text-sm font-medium text-neutral-500 hover:underline">
+        <Link href="/admin" className="text-sm font-medium text-muted-foreground hover:text-primary hover:underline">
           ← All courses
         </Link>
-        <Link href={`/courses/${courseId}`} className="text-sm font-medium underline">
+        <Link href={`/courses/${courseId}`} className="text-sm font-medium text-primary underline">
           Preview
         </Link>
       </div>
@@ -123,14 +127,14 @@ function Editor({ courseId }: { courseId: string }) {
           <h2 className="text-lg font-semibold">Chapters</h2>
           <button
             onClick={addChapter}
-            className="rounded-lg bg-neutral-900 px-3 py-1.5 text-sm font-medium text-white dark:bg-white dark:text-neutral-900"
+            className="rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground shadow-sm transition hover:bg-[#8b1717]"
           >
             Add chapter
           </button>
         </div>
         <div className="flex flex-col gap-3">
           {chapters.length === 0 && (
-            <p className="text-sm text-neutral-500">No chapters yet.</p>
+            <p className="text-sm text-muted-foreground">No chapters yet.</p>
           )}
           {chapters.map((chapter, i) => (
             <ChapterCard
@@ -150,7 +154,7 @@ function Editor({ courseId }: { courseId: string }) {
 }
 
 const fieldClass =
-  "w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900";
+  "w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/40";
 
 function CourseMetaEditor({
   course,
@@ -183,7 +187,7 @@ function CourseMetaEditor({
   };
 
   return (
-    <section className="rounded-2xl border border-neutral-200 p-4 sm:p-6 dark:border-neutral-800">
+    <section className="rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-6">
       <h2 className="mb-4 text-lg font-semibold">Course details</h2>
       <div className="flex flex-col gap-4">
         <label className="flex flex-col gap-1">
@@ -223,7 +227,7 @@ function CourseMetaEditor({
               {coverImageUrl && (
                 <button
                   onClick={() => setCoverImageUrl("")}
-                  className="text-sm text-neutral-500 hover:underline"
+                  className="text-sm text-muted-foreground hover:text-primary hover:underline"
                 >
                   Remove
                 </button>
@@ -243,7 +247,7 @@ function CourseMetaEditor({
           <button
             onClick={save}
             disabled={saving}
-            className="rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-white dark:text-neutral-900"
+            className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm transition hover:bg-[#8b1717] disabled:opacity-50"
           >
             {saving ? "Saving…" : "Save details"}
           </button>
@@ -279,12 +283,12 @@ function CourseContentEditor({
   };
 
   return (
-    <div className="rounded-2xl border border-neutral-200 p-4 sm:p-6 dark:border-neutral-800">
+    <div className="rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-6">
       <ContentEditor buckets={buckets} onChange={setBuckets} />
       <button
         onClick={save}
         disabled={saving}
-        className="mt-4 rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-white dark:text-neutral-900"
+        className="mt-4 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm transition hover:bg-[#8b1717] disabled:opacity-50"
       >
         {saving ? "Saving…" : "Save course materials"}
       </button>
@@ -336,18 +340,18 @@ function ChapterCard({
   };
 
   return (
-    <div className="rounded-xl border border-neutral-200 dark:border-neutral-800">
+    <div className="rounded-xl border border-border bg-card shadow-sm">
       <div className="flex items-center justify-between gap-2 p-4">
         <button
           onClick={() => setOpen((v) => !v)}
           className="flex min-w-0 flex-1 items-center gap-3 text-left"
         >
-          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-neutral-100 text-xs dark:bg-neutral-800">
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-saffron text-xs font-medium text-primary">
             {index + 1}
           </span>
           <span className="min-w-0 truncate font-medium">{chapter.title}</span>
           {!chapter.isPublished && (
-            <span className="shrink-0 rounded bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">
+            <span className="shrink-0 rounded-full bg-progress/15 px-2 py-0.5 text-xs font-medium text-progress">
               Draft
             </span>
           )}
@@ -356,7 +360,7 @@ function ChapterCard({
           <button
             onClick={() => onMove(index, -1)}
             disabled={index === 0}
-            className="rounded px-2 py-1 text-sm text-neutral-500 hover:bg-neutral-100 disabled:opacity-30 dark:hover:bg-neutral-800"
+            className="rounded px-2 py-1 text-sm text-muted-foreground hover:bg-accent disabled:opacity-30"
             aria-label="Move up"
           >
             ↑
@@ -364,14 +368,14 @@ function ChapterCard({
           <button
             onClick={() => onMove(index, 1)}
             disabled={index === total - 1}
-            className="rounded px-2 py-1 text-sm text-neutral-500 hover:bg-neutral-100 disabled:opacity-30 dark:hover:bg-neutral-800"
+            className="rounded px-2 py-1 text-sm text-muted-foreground hover:bg-accent disabled:opacity-30"
             aria-label="Move down"
           >
             ↓
           </button>
           <button
             onClick={() => setOpen((v) => !v)}
-            className="rounded-lg border border-neutral-300 px-3 py-1.5 text-sm font-medium dark:border-neutral-700"
+            className="rounded-lg border border-border bg-card px-3 py-1.5 text-sm font-medium transition hover:bg-accent"
           >
             {open ? "Collapse" : "Edit"}
           </button>
@@ -379,7 +383,7 @@ function ChapterCard({
       </div>
 
       {open && (
-        <div className="flex flex-col gap-4 border-t border-neutral-200 p-4 dark:border-neutral-800">
+        <div className="flex flex-col gap-4 border-t border-border p-4">
           <label className="flex flex-col gap-1">
             <span className="text-sm font-medium">Title</span>
             <input className={fieldClass} value={title} onChange={(e) => setTitle(e.target.value)} />
@@ -408,13 +412,13 @@ function ChapterCard({
             <button
               onClick={save}
               disabled={saving}
-              className="rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-white dark:text-neutral-900"
+              className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm transition hover:bg-[#8b1717] disabled:opacity-50"
             >
               {saving ? "Saving…" : "Save chapter"}
             </button>
             <button
               onClick={remove}
-              className="rounded-lg px-3 py-2 text-sm font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40"
+              className="rounded-lg px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
             >
               Delete chapter
             </button>

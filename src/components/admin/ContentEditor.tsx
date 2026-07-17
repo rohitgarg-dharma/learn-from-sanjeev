@@ -58,8 +58,8 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
-      <h4 className="mb-3 text-sm font-semibold uppercase tracking-wide text-neutral-500">
+    <section className="rounded-xl border border-border bg-card p-4">
+      <h4 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
         {title}
       </h4>
       {children}
@@ -68,11 +68,11 @@ function Section({
 }
 
 const rowClass =
-  "flex flex-col gap-2 rounded-lg border border-neutral-200 p-3 sm:flex-row sm:items-center sm:justify-between dark:border-neutral-800";
+  "flex flex-col gap-2 rounded-lg border border-border bg-background p-3 sm:flex-row sm:items-center sm:justify-between";
 const inputClass =
-  "w-full rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-sm dark:border-neutral-700 dark:bg-neutral-900";
+  "w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-primary/40";
 const removeBtn =
-  "shrink-0 rounded-lg px-2 py-1 text-sm font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40";
+  "shrink-0 rounded-lg px-2 py-1 text-sm font-medium text-red-600 hover:bg-red-50";
 
 // ---------------- Videos ----------------
 
@@ -111,7 +111,7 @@ function VideosSection({
                   onChange(videos.map((x, j) => (j === i ? { ...x, title: e.target.value } : x)))
                 }
               />
-              <p className="mt-1 truncate text-xs text-neutral-500">
+              <p className="mt-1 truncate text-xs text-muted-foreground">
                 {v.provider} · {v.url}
               </p>
             </div>
@@ -137,7 +137,7 @@ function VideosSection({
         />
         <button
           onClick={addUrl}
-          className="shrink-0 rounded-lg bg-neutral-900 px-3 py-1.5 text-sm font-medium text-white dark:bg-white dark:text-neutral-900"
+          className="shrink-0 rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground transition hover:bg-[#8b1717]"
         >
           Add
         </button>
@@ -179,7 +179,7 @@ function BooksSection({
                   onChange(books.map((x, j) => (j === i ? { ...x, title: e.target.value } : x)))
                 }
               />
-              <div className="mt-1 flex items-center gap-3 text-xs text-neutral-500">
+              <div className="mt-1 flex items-center gap-3 text-xs text-muted-foreground">
                 <span className="uppercase">{b.format}</span>
                 {b.format === "pdf" && (
                   <label className="flex items-center gap-1">
@@ -300,7 +300,7 @@ function MaterialsSection({
                   onChange(materials.map((x, j) => (j === i ? { ...x, title: e.target.value } : x)))
                 }
               />
-              <p className="mt-1 truncate text-xs text-neutral-500">{m.contentType} · {m.url}</p>
+              <p className="mt-1 truncate text-xs text-muted-foreground">{m.contentType} · {m.url}</p>
             </div>
             <button
               className={removeBtn}

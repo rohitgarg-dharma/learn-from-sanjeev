@@ -14,17 +14,17 @@ export function PosterGallery({ posters }: { posters: PosterItem[] }) {
           <button
             key={poster.id}
             onClick={() => setActive(poster)}
-            className="group overflow-hidden rounded-xl border border-neutral-200 bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-800"
+            className="group overflow-hidden rounded-xl border border-border bg-muted transition-shadow hover:shadow-md"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={poster.url}
               alt={poster.title ?? "Poster"}
-              className="aspect-[3/4] w-full object-cover transition group-hover:opacity-90"
+              className="aspect-[3/4] w-full object-cover transition group-hover:scale-105"
               loading="lazy"
             />
             {poster.title && (
-              <div className="truncate p-2 text-left text-xs text-neutral-600 dark:text-neutral-300">
+              <div className="truncate bg-card p-2 text-left text-xs text-muted-foreground">
                 {poster.title}
               </div>
             )}

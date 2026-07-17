@@ -16,8 +16,8 @@ export default function CoursePage({ params }: { params: Promise<{ courseId: str
 
   if (loading) {
     return (
-      <div className="flex min-h-dvh items-center justify-center text-sm text-neutral-500">
-        Loading…
+      <div className="flex min-h-dvh items-center justify-center text-sm text-muted-foreground">
+        <span className="animate-pulse">Loading…</span>
       </div>
     );
   }
@@ -73,8 +73,8 @@ function Player({ courseId }: { courseId: string }) {
   if (error) {
     return (
       <main className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
-        <p className="text-sm text-red-500">{error}</p>
-        <Link href="/" className="mt-4 inline-block text-sm font-medium underline">
+        <p className="text-sm text-red-600">{error}</p>
+        <Link href="/" className="mt-4 inline-block text-sm font-medium text-primary hover:underline">
           Back to courses
         </Link>
       </main>
@@ -82,7 +82,11 @@ function Player({ courseId }: { courseId: string }) {
   }
 
   if (!course) {
-    return <p className="mx-auto max-w-6xl px-6 py-16 text-sm text-neutral-500">Loading course…</p>;
+    return (
+      <p className="mx-auto max-w-6xl px-6 py-16 text-sm text-muted-foreground">
+        <span className="animate-pulse">Loading course…</span>
+      </p>
+    );
   }
 
   const select = (s: Selection) => {
@@ -91,13 +95,13 @@ function Player({ courseId }: { courseId: string }) {
   };
 
   return (
-    <div className="mx-auto max-w-6xl gap-6 px-4 py-6 sm:px-6 lg:grid lg:grid-cols-[280px_1fr]">
+    <div className="mx-auto max-w-6xl gap-6 px-4 py-6 sm:px-6 lg:grid lg:grid-cols-[288px_1fr]">
       {/* Mobile: toggle for the curriculum drawer */}
       <div className="mb-4 flex items-center justify-between lg:hidden">
-        <h1 className="truncate text-lg font-semibold">{course.title}</h1>
+        <h1 className="truncate text-lg font-bold">{course.title}</h1>
         <button
           onClick={() => setSidebarOpen(true)}
-          className="shrink-0 rounded-lg border border-neutral-300 px-3 py-1.5 text-sm font-medium dark:border-neutral-700"
+          className="shrink-0 rounded-lg border border-primary px-3 py-1.5 text-sm font-medium text-primary transition hover:bg-saffron"
         >
           Chapters
         </button>
@@ -117,17 +121,21 @@ function Player({ courseId }: { courseId: string }) {
       {/* Content */}
       <main className="min-w-0">
         <div className="mb-4 hidden lg:block">
-          <h1 className="text-2xl font-semibold tracking-tight">{course.title}</h1>
+          <h1 className="text-2xl font-bold tracking-tight">{course.title}</h1>
           {course.description && (
-            <p className="mt-1 text-sm text-neutral-500">{course.description}</p>
+            <p className="mt-1 text-sm text-muted-foreground">{course.description}</p>
           )}
         </div>
-        <div className="rounded-2xl border border-neutral-200 bg-white p-4 sm:p-6 dark:border-neutral-800 dark:bg-neutral-900">
-          {activeTitle && <h2 className="mb-4 text-lg font-semibold">{activeTitle}</h2>}
+        <div className="rounded-2xl border border-border bg-card p-4 shadow-[0_4px_16px_rgba(0,0,0,0.05)] sm:p-6">
+          {activeTitle && (
+            <h2 className="mb-4 text-lg font-bold">
+              <span className="text-primary">{activeTitle}</span>
+            </h2>
+          )}
           {activeBuckets ? (
             <ContentTabs buckets={activeBuckets} />
           ) : (
-            <p className="text-sm text-neutral-500">Select a chapter to begin.</p>
+            <p className="text-sm text-muted-foreground">Select a chapter to begin.</p>
           )}
         </div>
       </main>
@@ -172,7 +180,7 @@ function Sidebar({
         />
       ))}
       {chapters.length === 0 && !courseHasContent && (
-        <p className="px-3 py-4 text-sm text-neutral-500">No chapters yet.</p>
+        <p className="px-3 py-4 text-sm text-muted-foreground">No chapters yet.</p>
       )}
     </nav>
   );
@@ -180,9 +188,9 @@ function Sidebar({
   return (
     <>
       {/* Desktop sidebar */}
-      <aside className="sticky top-20 hidden h-fit rounded-2xl border border-neutral-200 bg-white p-3 lg:block dark:border-neutral-800 dark:bg-neutral-900">
-        <p className="px-3 pb-2 pt-1 text-xs font-semibold uppercase tracking-wide text-neutral-400">
-          {course.title}
+      <aside className="sticky top-20 hidden h-fit rounded-2xl border border-border bg-card p-3 shadow-sm lg:block">
+        <p className="px-2 pb-2 pt-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          Curriculum
         </p>
         {list}
       </aside>
@@ -190,14 +198,14 @@ function Sidebar({
       {/* Mobile drawer */}
       {open && (
         <div className="fixed inset-0 z-40 lg:hidden" onClick={onClose}>
-          <div className="absolute inset-0 bg-black/40" />
+          <div className="absolute inset-0 bg-black/50" />
           <aside
-            className="absolute left-0 top-0 h-full w-80 max-w-[85%] overflow-y-auto bg-white p-4 shadow-xl dark:bg-neutral-900"
+            className="absolute left-0 top-0 h-full w-80 max-w-[85%] overflow-y-auto bg-card p-4 shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-3 flex items-center justify-between">
-              <span className="text-sm font-semibold">Chapters</span>
-              <button onClick={onClose} className="text-sm text-neutral-500">
+              <span className="truncate text-sm font-bold text-primary">{course.title}</span>
+              <button onClick={onClose} className="text-sm text-muted-foreground">
                 Close
               </button>
             </div>
@@ -223,17 +231,15 @@ function ItemButton({
   return (
     <button
       onClick={onClick}
-      className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm transition ${
+      className={`flex w-full items-center gap-3 rounded-md border-l-2 px-3 py-2 text-left text-sm transition-colors ${
         active
-          ? "bg-neutral-900 text-white dark:bg-white dark:text-neutral-900"
-          : "hover:bg-neutral-100 dark:hover:bg-neutral-800"
+          ? "border-primary bg-saffron-strong font-semibold text-foreground shadow-[0_2px_8px_rgba(167,28,28,0.12)]"
+          : "border-transparent hover:bg-saffron"
       }`}
     >
       <span
-        className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs ${
-          active
-            ? "bg-white/20 dark:bg-neutral-900/20"
-            : "bg-neutral-100 text-neutral-500 dark:bg-neutral-800"
+        className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-medium ${
+          active ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
         }`}
       >
         {index ?? "★"}

@@ -25,29 +25,25 @@ export function MaterialList({ materials }: { materials: MaterialItem[] }) {
               download
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center justify-between gap-3 rounded-xl border border-neutral-200 p-4 transition hover:bg-neutral-50 dark:border-neutral-800 dark:hover:bg-neutral-800/50"
+              className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card p-4 transition hover:bg-saffron/40"
             >
               <div className="flex min-w-0 items-center gap-3">
-                <svg
-                  className="h-5 w-5 shrink-0 text-neutral-400"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                >
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                  <path d="M14 2v6h6" />
-                </svg>
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-secondary text-primary">
+                  <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                    <path d="M14 2v6h6" />
+                  </svg>
+                </span>
                 <span className="min-w-0">
                   <span className="block truncate font-medium">{material.title}</span>
                   {(material.contentType || size) && (
-                    <span className="block truncate text-xs text-neutral-500">
+                    <span className="block truncate text-xs text-muted-foreground">
                       {[material.contentType, size].filter(Boolean).join(" · ")}
                     </span>
                   )}
                 </span>
               </div>
-              <span className="shrink-0 text-sm font-medium text-neutral-500">Download</span>
+              <span className="shrink-0 text-sm font-medium text-primary">Download</span>
             </a>
           </li>
         );

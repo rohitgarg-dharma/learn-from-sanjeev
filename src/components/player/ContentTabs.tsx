@@ -22,23 +22,23 @@ export function ContentTabs({ buckets }: { buckets: ContentBuckets }) {
 
   if (tabs.length === 0) {
     return (
-      <p className="rounded-xl border border-dashed border-neutral-300 p-8 text-center text-sm text-neutral-500 dark:border-neutral-700">
+      <p className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
         No content in this section yet.
       </p>
     );
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap gap-2 border-b border-neutral-200 pb-3 dark:border-neutral-800">
+    <div className="flex flex-col gap-5">
+      <div className="flex flex-wrap gap-1.5 rounded-xl border border-border bg-background p-1.5 shadow-[0_0_6px_rgba(0,0,0,0.06)]">
         {tabs.map((key) => (
           <button
             key={key}
             onClick={() => setSelected(key)}
-            className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
+            className={`rounded-lg px-4 py-2 text-sm transition-all duration-200 ${
               key === active
-                ? "bg-neutral-900 text-white dark:bg-white dark:text-neutral-900"
-                : "text-neutral-600 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-neutral-800"
+                ? "bg-saffron font-semibold text-foreground"
+                : "text-muted-foreground hover:bg-saffron/50"
             }`}
           >
             {TAB_LABELS[key]}

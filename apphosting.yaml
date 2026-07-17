@@ -51,11 +51,11 @@ env:
       - BUILD
 
   - variable: NEXT_PUBLIC_FIREBASE_APP_ID
-    value: "1:267769847144:web:cc6e8dc55b0fdbc283cadd"
+    value: "1:267769847144:web:2ecbe3b885aea83183cadd"
     availability:
       - BUILD
 
   - variable: NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
-    value: G-BTFN0P7E6N
+    value: G-MKT8SFJ4HH
     availability:
       - BUILD

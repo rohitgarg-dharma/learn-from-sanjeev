@@ -21,16 +21,25 @@ export function LoginScreen() {
   };
 
   return (
-    <main className="flex min-h-dvh flex-col items-center justify-center px-6">
-      <div className="w-full max-w-sm rounded-2xl border border-neutral-200 bg-white p-8 text-center shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
-        <h1 className="text-2xl font-semibold tracking-tight">Learn from Sanjeev</h1>
-        <p className="mt-2 text-sm text-neutral-500">
+    <main className="flex min-h-dvh flex-col items-center justify-center bg-gradient-to-b from-saffron/40 to-background px-6">
+      <div className="w-full max-w-sm rounded-2xl border border-border bg-card p-8 text-center shadow-[0_4px_24px_rgba(167,28,28,0.08)]">
+        <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-sm">
+          <svg className="h-7 w-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+            <path d="M12 2 3 7l9 5 9-5-9-5Z" />
+            <path d="M3 12l9 5 9-5" />
+            <path d="M3 17l9 5 9-5" />
+          </svg>
+        </div>
+        <h1 className="text-2xl font-bold tracking-tight">
+          Learn from <span className="text-primary">Sanjeev</span>
+        </h1>
+        <p className="mt-2 text-sm text-muted-foreground">
           Sign in to browse courses, videos, books, and study materials.
         </p>
         <button
           onClick={handleSignIn}
           disabled={busy}
-          className="mt-6 flex w-full items-center justify-center gap-3 rounded-xl border border-neutral-300 bg-white px-4 py-2.5 text-sm font-medium text-neutral-800 transition hover:bg-neutral-50 disabled:opacity-50 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-700"
+          className="mt-6 flex w-full items-center justify-center gap-3 rounded-xl border border-border bg-background px-4 py-2.5 text-sm font-medium text-foreground transition hover:bg-accent disabled:opacity-50"
         >
           <svg className="h-5 w-5" viewBox="0 0 24 24" aria-hidden="true">
             <path
@@ -52,7 +61,7 @@ export function LoginScreen() {
           </svg>
           {busy ? "Signing in…" : "Sign in with Google"}
         </button>
-        {error && <p className="mt-4 text-sm text-red-500">{error}</p>}
+        {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
       </div>
     </main>
   );
