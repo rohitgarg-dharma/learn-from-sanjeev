@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useEffect, useMemo, useState } from "react";
+import { use, useEffect, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import { LoginScreen } from "@/components/LoginScreen";
@@ -8,7 +8,7 @@ import { AppHeader } from "@/components/AppHeader";
 import { ContentTabs } from "@/components/player/ContentTabs";
 import { fetchCourse } from "@/lib/lms/client";
 import { hasAnyContent } from "@/lib/lms/content";
-import type { Chapter, ContentBuckets, Course } from "@/lib/lms/types";
+import type { Chapter, ContentBuckets, Course, Section } from "@/lib/lms/types";
 
 export default function CoursePage({ params }: { params: Promise<{ courseId: string }> }) {
   const { courseId } = use(params);
@@ -36,6 +36,7 @@ type Selection = { kind: "overview" } | { kind: "chapter"; id: string };
 
 function Player({ courseId }: { courseId: string }) {
   const [course, setCourse] = useState<Course | null>(null);
+  const [sections, setSections] = useState<Section[]>([]);
   const [chapters, setChapters] = useState<Chapter[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -45,8 +46,9 @@ function Player({ courseId }: { courseId: string }) {
 
   useEffect(() => {
     fetchCourse(courseId)
-      .then(({ course, chapters }) => {
+      .then(({ course, sections, chapters }) => {
         setCourse(course);
+        setSections(sections);
         setChapters(chapters);
         setSelection(
           hasAnyContent(course)
@@ -118,6 +120,7 @@ function Player({ courseId }: { courseId: string }) {
       {/* Sidebar (static on desktop, drawer on mobile) */}
       <Sidebar
         course={course}
+        sections={sections}
         chapters={chapters}
         courseHasContent={courseHasContent}
         selection={selection}
@@ -164,6 +167,7 @@ function Player({ courseId }: { courseId: string }) {
 
 function Sidebar({
   course,
+  sections,
   chapters,
   courseHasContent,
   selection,
@@ -172,6 +176,7 @@ function Sidebar({
   onClose,
 }: {
   course: Course;
+  sections: Section[];
   chapters: Chapter[];
   courseHasContent: boolean;
   selection: Selection | null;
@@ -179,6 +184,20 @@ function Sidebar({
   open: boolean;
   onClose: () => void;
 }) {
+  // A stable chapter number based on the flat ordered chapter list.
+  const numberOf = (id: string) => chapters.findIndex((c) => c.id === id) + 1;
+
+  const ungrouped = chapters.filter((c) => !c.sectionId);
+  const chapterButton = (chapter: Chapter) => (
+    <ItemButton
+      key={chapter.id}
+      active={selection?.kind === "chapter" && selection.id === chapter.id}
+      onClick={() => onSelect({ kind: "chapter", id: chapter.id })}
+      label={chapter.title}
+      index={numberOf(chapter.id)}
+    />
+  );
+
   const list = (
     <nav className="flex flex-col gap-1">
       {courseHasContent && (
@@ -189,15 +208,35 @@ function Sidebar({
           index={null}
         />
       )}
-      {chapters.map((chapter, i) => (
-        <ItemButton
-          key={chapter.id}
-          active={selection?.kind === "chapter" && selection.id === chapter.id}
-          onClick={() => onSelect({ kind: "chapter", id: chapter.id })}
-          label={chapter.title}
-          index={i + 1}
-        />
-      ))}
+
+      {sections.map((section) => {
+        const own = chapters.filter((c) => c.sectionId === section.id);
+        if (own.length === 0) return null;
+        return (
+          <SectionGroup
+            key={section.id}
+            title={section.title}
+            activeInside={own.some((c) => selection?.kind === "chapter" && selection.id === c.id)}
+          >
+            {own.map(chapterButton)}
+          </SectionGroup>
+        );
+      })}
+
+      {ungrouped.length > 0 &&
+        (sections.length > 0 ? (
+          <SectionGroup
+            title="Other chapters"
+            activeInside={ungrouped.some(
+              (c) => selection?.kind === "chapter" && selection.id === c.id,
+            )}
+          >
+            {ungrouped.map(chapterButton)}
+          </SectionGroup>
+        ) : (
+          ungrouped.map(chapterButton)
+        ))}
+
       {chapters.length === 0 && !courseHasContent && (
         <p className="px-3 py-4 text-sm text-muted-foreground">No chapters yet.</p>
       )}
@@ -233,6 +272,36 @@ function Sidebar({
         </div>
       )}
     </>
+  );
+}
+
+/** A collapsible section header with its chapter rows underneath. */
+function SectionGroup({
+  title,
+  activeInside,
+  children,
+}: {
+  title: string;
+  activeInside: boolean;
+  children: ReactNode;
+}) {
+  const [open, setOpen] = useState(true);
+  return (
+    <div className="mt-1">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground transition hover:bg-saffron"
+      >
+        <span
+          className={`transition-transform ${open ? "rotate-90" : ""} ${activeInside ? "text-primary" : ""}`}
+          aria-hidden
+        >
+          ▸
+        </span>
+        <span className="min-w-0 flex-1 truncate">{title}</span>
+      </button>
+      {open && <div className="mt-1 flex flex-col gap-1 pl-2">{children}</div>}
+    </div>
   );
 }
 

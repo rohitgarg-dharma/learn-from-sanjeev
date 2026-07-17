@@ -2,9 +2,11 @@
  * Shared LMS domain types. Used by both the client fetch layer and the
  * server-only Admin SDK data layer so the two always agree on shapes.
  *
- * Model (simpler than gurukula-lms — no Lesson layer):
- *   Course -> Chapters, each holding typed material arrays. A content tab is
- *   shown to learners only if its array is non-empty (Posters are optional).
+ * Model:
+ *   Course -> Sections -> Chapters, each chapter holding typed material arrays.
+ *   Sections are an ordered grouping level; a chapter belongs to a section via
+ *   `sectionId` (null = ungrouped). A content tab is shown to learners only if
+ *   its array is non-empty (Posters are optional).
  */
 
 /** A video: an external embed (YouTube/Vimeo) or an uploaded/direct file URL. */
@@ -50,9 +52,22 @@ export interface ContentBuckets {
   materials: MaterialItem[];
 }
 
+/** An ordered grouping of chapters within a course. */
+export interface Section {
+  id: string;
+  courseId: string;
+  title: string;
+  description?: string;
+  sortOrder: number;
+  createdAt: number | null;
+  updatedAt: number | null;
+}
+
 export interface Chapter extends ContentBuckets {
   id: string;
   courseId: string;
+  /** Owning section; null/undefined means ungrouped. */
+  sectionId: string | null;
   title: string;
   description?: string;
   sortOrder: number;
@@ -64,18 +79,28 @@ export interface Chapter extends ContentBuckets {
 export interface Course extends ContentBuckets {
   id: string;
   title: string;
+  /** Short description shown in course listings and previews. */
   description: string;
   coverImageUrl?: string;
   category?: string;
+  /** Difficulty label, e.g. "Beginner". */
+  level?: string;
+  /** Discovery tags (normalized to lowercase). */
+  tags: string[];
+  /** Optional promo/"about" video URL (YouTube/Vimeo/file). */
+  promoVideoUrl?: string;
+  /** Longer "About this course" body (plain text, one bullet per line). */
+  aboutContent?: string;
   isPublished: boolean;
   sortOrder: number;
   createdAt: number | null;
   updatedAt: number | null;
 }
 
-/** Course with its ordered chapters, returned by the course-detail endpoint. */
+/** Course with its ordered sections + chapters, from the course-detail endpoint. */
 export interface CourseWithChapters {
   course: Course;
+  sections: Section[];
   chapters: Chapter[];
 }
 
@@ -155,6 +180,10 @@ export type CourseInput = Partial<
     | "description"
     | "coverImageUrl"
     | "category"
+    | "level"
+    | "tags"
+    | "promoVideoUrl"
+    | "aboutContent"
     | "isPublished"
     | "sortOrder"
     | "videos"
@@ -170,6 +199,7 @@ export type ChapterInput = Partial<
     Chapter,
     | "title"
     | "description"
+    | "sectionId"
     | "isPublished"
     | "sortOrder"
     | "videos"
@@ -178,6 +208,20 @@ export type ChapterInput = Partial<
     | "materials"
   >
 >;
+
+/** Writable fields for creating/updating a section (admin). */
+export type SectionInput = Partial<Pick<Section, "title" | "description" | "sortOrder">>;
+
+/** Admin dashboard aggregate metrics. */
+export interface AdminStats {
+  totalCourses: number;
+  publishedCourses: number;
+  draftCourses: number;
+  totalSections: number;
+  totalChapters: number;
+  communityThreads: number;
+  unansweredThreads: number;
+}
 
 export const EMPTY_BUCKETS: ContentBuckets = {
   videos: [],

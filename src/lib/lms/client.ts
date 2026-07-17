@@ -1,11 +1,14 @@
 import { getFirebaseAuth } from "@/lib/firebase/client";
 import type {
+  AdminStats,
   Course,
   CourseInput,
   CourseWithChapters,
   Chapter,
   ChapterInput,
   MediaUploadResponse,
+  Section,
+  SectionInput,
 } from "@/lib/lms/types";
 
 /**
@@ -65,6 +68,38 @@ export async function deleteCourse(courseId: string): Promise<void> {
   await jsonOrThrow(res);
 }
 
+// ---------------- Sections (admin) ----------------
+
+export async function createSection(courseId: string, input: SectionInput): Promise<Section> {
+  const res = await fetch(`/api/courses/${courseId}/sections`, {
+    method: "POST",
+    headers: { ...(await authHeader()), "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  return (await jsonOrThrow(res)).section as Section;
+}
+
+export async function updateSection(
+  courseId: string,
+  sectionId: string,
+  input: SectionInput,
+): Promise<Section> {
+  const res = await fetch(`/api/courses/${courseId}/sections/${sectionId}`, {
+    method: "PATCH",
+    headers: { ...(await authHeader()), "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  return (await jsonOrThrow(res)).section as Section;
+}
+
+export async function deleteSection(courseId: string, sectionId: string): Promise<void> {
+  const res = await fetch(`/api/courses/${courseId}/sections/${sectionId}`, {
+    method: "DELETE",
+    headers: await authHeader(),
+  });
+  await jsonOrThrow(res);
+}
+
 // ---------------- Chapters (admin) ----------------
 
 export async function createChapter(courseId: string, input: ChapterInput): Promise<Chapter> {
@@ -95,6 +130,13 @@ export async function deleteChapter(courseId: string, chapterId: string): Promis
     headers: await authHeader(),
   });
   await jsonOrThrow(res);
+}
+
+// ---------------- Admin stats ----------------
+
+export async function fetchAdminStats(): Promise<AdminStats> {
+  const res = await fetch("/api/admin/stats", { headers: await authHeader() });
+  return (await jsonOrThrow(res)).stats as AdminStats;
 }
 
 // ---------------- Media upload (admin) ----------------

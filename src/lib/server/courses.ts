@@ -3,22 +3,28 @@ import { FieldValue, type Timestamp } from "firebase-admin/firestore";
 import { adminDb } from "@/lib/firebase/admin";
 import {
   EMPTY_BUCKETS,
+  type AdminStats,
   type Chapter,
   type ChapterInput,
   type Course,
   type CourseInput,
   type CourseWithChapters,
+  type Section,
+  type SectionInput,
 } from "@/lib/lms/types";
 
 /**
- * Server-only data access (Admin SDK) for the LMS. All course/chapter reads and
- * writes go through here — the browser never touches Firestore. Collections are
- * namespaced with the `lms_` prefix in the shared dharma-501312 database.
+ * Server-only data access (Admin SDK) for the LMS. All course/section/chapter
+ * reads and writes go through here — the browser never touches Firestore.
+ * Collections are namespaced with the `lms_` prefix in the shared dharma-501312
+ * database.
  *
  *   lms_courses/{courseId}
- *   lms_courses/{courseId}/chapters/{chapterId}
+ *   lms_courses/{courseId}/sections/{sectionId}
+ *   lms_courses/{courseId}/chapters/{chapterId}   (chapter.sectionId groups it)
  */
 const COURSES = "lms_courses";
+const SECTIONS = "sections";
 const CHAPTERS = "chapters";
 
 function ms(ts: unknown): number | null {
@@ -27,6 +33,9 @@ function ms(ts: unknown): number | null {
 
 function coursesCol() {
   return adminDb.collection(COURSES);
+}
+function sectionsCol(courseId: string) {
+  return coursesCol().doc(courseId).collection(SECTIONS);
 }
 function chaptersCol(courseId: string) {
   return coursesCol().doc(courseId).collection(CHAPTERS);
@@ -52,6 +61,10 @@ function toCourse(doc: FirebaseFirestore.QueryDocumentSnapshot | FirebaseFiresto
     description: data.description ?? "",
     coverImageUrl: data.coverImageUrl ?? undefined,
     category: data.category ?? undefined,
+    level: data.level ?? undefined,
+    tags: Array.isArray(data.tags) ? data.tags : [],
+    promoVideoUrl: data.promoVideoUrl ?? undefined,
+    aboutContent: data.aboutContent ?? undefined,
     isPublished: data.isPublished === true,
     sortOrder: typeof data.sortOrder === "number" ? data.sortOrder : 0,
     createdAt: ms(data.createdAt),
@@ -60,11 +73,37 @@ function toCourse(doc: FirebaseFirestore.QueryDocumentSnapshot | FirebaseFiresto
   };
 }
 
+/** Normalize tags to trimmed, lowercased, de-duped strings. */
+function normalizeTags(tags: unknown): string[] {
+  if (!Array.isArray(tags)) return [];
+  const seen = new Set<string>();
+  for (const t of tags) {
+    if (typeof t !== "string") continue;
+    const v = t.trim().toLowerCase();
+    if (v) seen.add(v);
+  }
+  return [...seen].slice(0, 30);
+}
+
+function toSection(courseId: string, doc: FirebaseFirestore.QueryDocumentSnapshot | FirebaseFirestore.DocumentSnapshot): Section {
+  const data = doc.data() ?? {};
+  return {
+    id: doc.id,
+    courseId,
+    title: data.title ?? "",
+    description: data.description ?? undefined,
+    sortOrder: typeof data.sortOrder === "number" ? data.sortOrder : 0,
+    createdAt: ms(data.createdAt),
+    updatedAt: ms(data.updatedAt),
+  };
+}
+
 function toChapter(courseId: string, doc: FirebaseFirestore.QueryDocumentSnapshot | FirebaseFirestore.DocumentSnapshot): Chapter {
   const data = doc.data() ?? {};
   return {
     id: doc.id,
     courseId,
+    sectionId: typeof data.sectionId === "string" ? data.sectionId : null,
     title: data.title ?? "",
     description: data.description ?? undefined,
     isPublished: data.isPublished === true,
@@ -99,7 +138,7 @@ export async function getCourse(courseId: string): Promise<Course | null> {
   return doc.exists ? toCourse(doc) : null;
 }
 
-/** Course plus its chapters (published-only for learners). */
+/** Course plus its sections + chapters (published-only for learners). */
 export async function getCourseWithChapters(
   courseId: string,
   includeUnpublished: boolean,
@@ -107,8 +146,11 @@ export async function getCourseWithChapters(
   const course = await getCourse(courseId);
   if (!course) return null;
   if (!course.isPublished && !includeUnpublished) return null;
-  const chapters = await listChapters(courseId, includeUnpublished);
-  return { course, chapters };
+  const [sections, chapters] = await Promise.all([
+    listSections(courseId),
+    listChapters(courseId, includeUnpublished),
+  ]);
+  return { course, sections, chapters };
 }
 
 export async function createCourse(input: CourseInput): Promise<Course> {
@@ -118,6 +160,10 @@ export async function createCourse(input: CourseInput): Promise<Course> {
     description: input.description ?? "",
     coverImageUrl: input.coverImageUrl ?? null,
     category: input.category ?? null,
+    level: input.level ?? null,
+    tags: normalizeTags(input.tags),
+    promoVideoUrl: input.promoVideoUrl ?? null,
+    aboutContent: input.aboutContent ?? null,
     isPublished: input.isPublished === true,
     sortOrder: typeof input.sortOrder === "number" ? input.sortOrder : Date.now(),
     ...EMPTY_BUCKETS,
@@ -137,6 +183,10 @@ export async function updateCourse(courseId: string, input: CourseInput): Promis
   if (input.description !== undefined) patch.description = input.description;
   if (input.coverImageUrl !== undefined) patch.coverImageUrl = input.coverImageUrl || null;
   if (input.category !== undefined) patch.category = input.category || null;
+  if (input.level !== undefined) patch.level = input.level || null;
+  if (input.tags !== undefined) patch.tags = normalizeTags(input.tags);
+  if (input.promoVideoUrl !== undefined) patch.promoVideoUrl = input.promoVideoUrl || null;
+  if (input.aboutContent !== undefined) patch.aboutContent = input.aboutContent || null;
   if (input.isPublished !== undefined) patch.isPublished = input.isPublished === true;
   if (input.sortOrder !== undefined) patch.sortOrder = input.sortOrder;
   Object.assign(patch, pickBuckets(input));
@@ -145,10 +195,58 @@ export async function updateCourse(courseId: string, input: CourseInput): Promis
 }
 
 export async function deleteCourse(courseId: string): Promise<void> {
-  const chapters = await chaptersCol(courseId).get();
+  const [chapters, sections] = await Promise.all([
+    chaptersCol(courseId).get(),
+    sectionsCol(courseId).get(),
+  ]);
   const batch = adminDb.batch();
   chapters.forEach((c) => batch.delete(c.ref));
+  sections.forEach((s) => batch.delete(s.ref));
   batch.delete(coursesCol().doc(courseId));
+  await batch.commit();
+}
+
+// ---------------- Sections ----------------
+
+export async function listSections(courseId: string): Promise<Section[]> {
+  const snap = await sectionsCol(courseId).orderBy("sortOrder", "asc").get();
+  return snap.docs.map((d) => toSection(courseId, d));
+}
+
+export async function createSection(courseId: string, input: SectionInput): Promise<Section | null> {
+  if (!(await coursesCol().doc(courseId).get()).exists) return null;
+  const now = FieldValue.serverTimestamp();
+  const ref = await sectionsCol(courseId).add({
+    title: (input.title ?? "Untitled section").slice(0, 200),
+    description: input.description ?? null,
+    sortOrder: typeof input.sortOrder === "number" ? input.sortOrder : Date.now(),
+    createdAt: now,
+    updatedAt: now,
+  });
+  return toSection(courseId, await ref.get());
+}
+
+export async function updateSection(
+  courseId: string,
+  sectionId: string,
+  input: SectionInput,
+): Promise<Section | null> {
+  const ref = sectionsCol(courseId).doc(sectionId);
+  if (!(await ref.get()).exists) return null;
+  const patch: FirebaseFirestore.DocumentData = { updatedAt: FieldValue.serverTimestamp() };
+  if (input.title !== undefined) patch.title = input.title.slice(0, 200);
+  if (input.description !== undefined) patch.description = input.description || null;
+  if (input.sortOrder !== undefined) patch.sortOrder = input.sortOrder;
+  await ref.update(patch);
+  return toSection(courseId, await ref.get());
+}
+
+/** Delete a section; its chapters are kept but become ungrouped (sectionId=null). */
+export async function deleteSection(courseId: string, sectionId: string): Promise<void> {
+  const owned = await chaptersCol(courseId).where("sectionId", "==", sectionId).get();
+  const batch = adminDb.batch();
+  owned.forEach((c) => batch.update(c.ref, { sectionId: null }));
+  batch.delete(sectionsCol(courseId).doc(sectionId));
   await batch.commit();
 }
 
@@ -171,6 +269,7 @@ export async function createChapter(courseId: string, input: ChapterInput): Prom
   const ref = await chaptersCol(courseId).add({
     title: (input.title ?? "Untitled chapter").slice(0, 200),
     description: input.description ?? null,
+    sectionId: input.sectionId ?? null,
     isPublished: input.isPublished === true,
     sortOrder: typeof input.sortOrder === "number" ? input.sortOrder : Date.now(),
     ...EMPTY_BUCKETS,
@@ -192,6 +291,7 @@ export async function updateChapter(
   const patch: FirebaseFirestore.DocumentData = { updatedAt: FieldValue.serverTimestamp() };
   if (input.title !== undefined) patch.title = input.title.slice(0, 200);
   if (input.description !== undefined) patch.description = input.description || null;
+  if (input.sectionId !== undefined) patch.sectionId = input.sectionId ?? null;
   if (input.isPublished !== undefined) patch.isPublished = input.isPublished === true;
   if (input.sortOrder !== undefined) patch.sortOrder = input.sortOrder;
   Object.assign(patch, pickBuckets(input));
@@ -201,4 +301,35 @@ export async function updateChapter(
 
 export async function deleteChapter(courseId: string, chapterId: string): Promise<void> {
   await chaptersCol(courseId).doc(chapterId).delete();
+}
+
+// ---------------- Admin stats ----------------
+
+/** Aggregate metrics for the admin dashboard. */
+export async function getAdminStats(): Promise<AdminStats> {
+  const courses = await listCourses(true);
+  const perCourse = await Promise.all(
+    courses.map(async (c) => {
+      const [sections, chapters] = await Promise.all([
+        sectionsCol(c.id).count().get(),
+        chaptersCol(c.id).count().get(),
+      ]);
+      return { sections: sections.data().count, chapters: chapters.data().count };
+    }),
+  );
+
+  const [threadsSnap, unansweredSnap] = await Promise.all([
+    adminDb.collection("lms_forum_threads").count().get(),
+    adminDb.collection("lms_forum_threads").where("replyCount", "==", 0).count().get(),
+  ]);
+
+  return {
+    totalCourses: courses.length,
+    publishedCourses: courses.filter((c) => c.isPublished).length,
+    draftCourses: courses.filter((c) => !c.isPublished).length,
+    totalSections: perCourse.reduce((n, p) => n + p.sections, 0),
+    totalChapters: perCourse.reduce((n, p) => n + p.chapters, 0),
+    communityThreads: threadsSnap.data().count,
+    unansweredThreads: unansweredSnap.data().count,
+  };
 }
