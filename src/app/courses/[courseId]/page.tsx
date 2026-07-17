@@ -97,14 +97,22 @@ function Player({ courseId }: { courseId: string }) {
   return (
     <div className="mx-auto max-w-6xl gap-6 px-4 py-6 sm:px-6 lg:grid lg:grid-cols-[288px_1fr]">
       {/* Mobile: toggle for the curriculum drawer */}
-      <div className="mb-4 flex items-center justify-between lg:hidden">
+      <div className="mb-4 flex items-center justify-between gap-2 lg:hidden">
         <h1 className="truncate text-lg font-bold">{course.title}</h1>
-        <button
-          onClick={() => setSidebarOpen(true)}
-          className="shrink-0 rounded-lg border border-primary px-3 py-1.5 text-sm font-medium text-primary transition hover:bg-saffron"
-        >
-          Chapters
-        </button>
+        <div className="flex shrink-0 items-center gap-2">
+          <Link
+            href={`/community?courseId=${courseId}`}
+            className="rounded-lg border border-border px-3 py-1.5 text-sm font-medium transition hover:bg-accent"
+          >
+            Discussion
+          </Link>
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="rounded-lg border border-primary px-3 py-1.5 text-sm font-medium text-primary transition hover:bg-saffron"
+          >
+            Chapters
+          </button>
+        </div>
       </div>
 
       {/* Sidebar (static on desktop, drawer on mobile) */}
@@ -120,11 +128,22 @@ function Player({ courseId }: { courseId: string }) {
 
       {/* Content */}
       <main className="min-w-0">
-        <div className="mb-4 hidden lg:block">
-          <h1 className="text-2xl font-bold tracking-tight">{course.title}</h1>
-          {course.description && (
-            <p className="mt-1 text-sm text-muted-foreground">{course.description}</p>
-          )}
+        <div className="mb-4 hidden items-start justify-between gap-4 lg:flex">
+          <div className="min-w-0">
+            <h1 className="text-2xl font-bold tracking-tight">{course.title}</h1>
+            {course.description && (
+              <p className="mt-1 text-sm text-muted-foreground">{course.description}</p>
+            )}
+          </div>
+          <Link
+            href={`/community?courseId=${courseId}`}
+            className="mt-1 inline-flex shrink-0 items-center gap-2 rounded-lg border border-border bg-card px-3 py-1.5 text-sm font-medium shadow-sm transition hover:border-primary/40 hover:bg-saffron/40"
+          >
+            <svg className="h-4 w-4 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+            </svg>
+            Discussion
+          </Link>
         </div>
         <div className="rounded-2xl border border-border bg-card p-4 shadow-[0_4px_16px_rgba(0,0,0,0.05)] sm:p-6">
           {activeTitle && (

@@ -87,6 +87,66 @@ export interface MediaUploadResponse {
   originalFilename: string;
 }
 
+// ---------------- Community (forum) ----------------
+
+/**
+ * A community attachment. Richer than gurukula's bare URL strings so previews
+ * can be rendered by content type (image inline, PDF viewer, file chip).
+ */
+export interface Attachment {
+  url: string;
+  contentType: string;
+  name: string;
+  sizeBytes: number;
+}
+
+/** A community question/discussion. `courseId` null means a general thread. */
+export interface ForumThread {
+  id: string;
+  courseId: string | null;
+  courseTitle: string | null;
+  authorUid: string;
+  authorName: string;
+  authorPhoto: string | null;
+  title: string;
+  body: string;
+  attachments: Attachment[];
+  replyCount: number;
+  createdAt: number | null;
+  updatedAt: number | null;
+}
+
+/** A reply to a thread. */
+export interface ForumReply {
+  id: string;
+  threadId: string;
+  authorUid: string;
+  authorName: string;
+  authorPhoto: string | null;
+  body: string;
+  attachments: Attachment[];
+  createdAt: number | null;
+}
+
+export interface ThreadWithReplies {
+  thread: ForumThread;
+  replies: ForumReply[];
+}
+
+/** Payload to create a thread. */
+export interface ThreadInput {
+  courseId?: string | null;
+  title: string;
+  body: string;
+  attachments?: Attachment[];
+}
+
+/** Payload to create a reply. */
+export interface ReplyInput {
+  body: string;
+  attachments?: Attachment[];
+}
+
 /** Writable fields for creating/updating a course (admin). */
 export type CourseInput = Partial<
   Pick<

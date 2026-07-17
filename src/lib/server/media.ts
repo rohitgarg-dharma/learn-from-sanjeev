@@ -2,7 +2,7 @@ import "server-only";
 import { createHash, randomUUID } from "crypto";
 import { extname } from "path";
 import { adminStorage } from "@/lib/firebase/admin";
-import { config } from "@/lib/config";
+import { getAppConfig } from "@/lib/server/app-config";
 import type { MediaUploadResponse } from "@/lib/lms/types";
 
 /**
@@ -38,8 +38,9 @@ function isAllowed(contentType: string): boolean {
   );
 }
 
-function bucket() {
-  return adminStorage.bucket(config.mediaBucket);
+async function bucket() {
+  const { mediaBucket } = await getAppConfig();
+  return adminStorage.bucket(mediaBucket);
 }
 
 function downloadUrl(bucketName: string, objectPath: string, token: string): string {
@@ -68,7 +69,8 @@ export async function uploadMedia(
   const checksum = createHash("sha256").update(buffer).digest("hex");
   const ext = extname(originalFilename).toLowerCase().slice(0, 12);
   const objectPath = `${MEDIA_PREFIX}/${checksum}${ext}`;
-  const file = bucket().file(objectPath);
+  const mediaBucket = await bucket();
+  const file = mediaBucket.file(objectPath);
 
   const [exists] = await file.exists();
   if (exists) {
@@ -80,7 +82,7 @@ export async function uploadMedia(
       await file.setMetadata({ metadata: { firebaseStorageDownloadTokens: token } });
     }
     return {
-      url: downloadUrl(bucket().name, objectPath, token),
+      url: downloadUrl(mediaBucket.name, objectPath, token),
       contentType: type,
       sizeBytes: buffer.length,
       originalFilename,
@@ -102,7 +104,7 @@ export async function uploadMedia(
   });
 
   return {
-    url: downloadUrl(bucket().name, objectPath, token),
+    url: downloadUrl(mediaBucket.name, objectPath, token),
     contentType: type,
     sizeBytes: buffer.length,
     originalFilename,

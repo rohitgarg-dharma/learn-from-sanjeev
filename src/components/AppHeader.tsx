@@ -28,6 +28,12 @@ export function AppHeader({ subtitle }: { subtitle?: string }) {
           </span>
         </Link>
         <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+          <Link
+            href="/community"
+            className="rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground transition hover:bg-accent hover:text-accent-foreground"
+          >
+            Community
+          </Link>
           {isAdmin && (
             <Link
               href="/admin"
