@@ -3,7 +3,7 @@ import { createHash, randomUUID } from "crypto";
 import { extname } from "path";
 import { adminStorage } from "@/lib/firebase/admin";
 import { getAppConfig } from "@/lib/server/app-config";
-import type { MediaUploadResponse } from "@/lib/lms/types";
+import type { MediaUploadResponse, VideoItem } from "@/lib/lms/types";
 
 /**
  * Server-only media handling (Admin SDK). The browser posts a file to the admin
@@ -83,6 +83,7 @@ export async function uploadMedia(
     }
     return {
       url: downloadUrl(mediaBucket.name, objectPath, token),
+      storagePath: objectPath,
       contentType: type,
       sizeBytes: buffer.length,
       originalFilename,
@@ -105,8 +106,52 @@ export async function uploadMedia(
 
   return {
     url: downloadUrl(mediaBucket.name, objectPath, token),
+    storagePath: objectPath,
     contentType: type,
     sizeBytes: buffer.length,
     originalFilename,
   };
+}
+
+/** How long a learner's signed video URL stays valid. */
+const SIGNED_URL_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
+
+/**
+ * Mints a short-lived V4 signed read URL for an object in the media bucket.
+ * Works with a service-account private key (local dev) and, in production
+ * (App Hosting), with the runtime service account via the IAM `signBlob` API —
+ * that SA needs the `Service Account Token Creator` role on itself.
+ */
+export async function signedReadUrl(
+  objectPath: string,
+  ttlMs: number = SIGNED_URL_TTL_MS,
+): Promise<string> {
+  const mediaBucket = await bucket();
+  const [url] = await mediaBucket.file(objectPath).getSignedUrl({
+    version: "v4",
+    action: "read",
+    expires: Date.now() + ttlMs,
+  });
+  return url;
+}
+
+/**
+ * Replaces the `url` of every bucket-hosted ("file" videos with a `storagePath`)
+ * video with a fresh signed URL. External embeds (YouTube/Vimeo) and plain URL
+ * videos pass through untouched. Signing failures fall back to the stored url so
+ * a transient IAM/permission issue never blanks the player.
+ */
+export async function signVideoItems(videos: VideoItem[]): Promise<VideoItem[]> {
+  if (!Array.isArray(videos) || videos.length === 0) return videos ?? [];
+  return Promise.all(
+    videos.map(async (v) => {
+      if (!v?.storagePath) return v;
+      try {
+        return { ...v, url: await signedReadUrl(v.storagePath) };
+      } catch (err) {
+        console.warn(`[media] could not sign ${v.storagePath}:`, err);
+        return v;
+      }
+    }),
+  );
 }

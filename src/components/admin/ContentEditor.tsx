@@ -10,6 +10,7 @@ import type {
 } from "@/lib/lms/types";
 import { detectProvider } from "@/lib/lms/content";
 import { MediaUploader } from "./MediaUploader";
+import { RichTextEditor } from "./RichTextEditor";
 
 function genId(): string {
   return typeof crypto !== "undefined" && "randomUUID" in crypto
@@ -76,6 +77,60 @@ const removeBtn =
 
 // ---------------- Videos ----------------
 
+/** A single video row: title + source caption, remove, and collapsible notes. */
+function VideoRow({
+  video,
+  onChange,
+  onRemove,
+}: {
+  video: VideoItem;
+  onChange: (next: VideoItem) => void;
+  onRemove: () => void;
+}) {
+  const [showNotes, setShowNotes] = useState(Boolean(video.notes));
+
+  return (
+    <div className="rounded-lg border border-border bg-background p-3">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0 flex-1">
+          <input
+            className={inputClass}
+            value={video.title}
+            placeholder="Video title"
+            onChange={(e) => onChange({ ...video, title: e.target.value })}
+          />
+          <p className="mt-1 truncate text-xs text-muted-foreground">
+            {video.storagePath
+              ? `hosted · signed URL · ${video.storagePath}`
+              : `${video.provider} · ${video.url}`}
+          </p>
+        </div>
+        <button className={removeBtn} onClick={onRemove}>
+          Remove
+        </button>
+      </div>
+
+      <div className="mt-2">
+        <button
+          type="button"
+          onClick={() => setShowNotes((s) => !s)}
+          className="text-xs font-medium text-primary hover:underline"
+        >
+          {showNotes ? "Hide text" : video.notes ? "Edit text" : "Add text (optional)"}
+        </button>
+        {showNotes && (
+          <div className="mt-2">
+            <RichTextEditor
+              value={video.notes ?? ""}
+              onChange={(html) => onChange({ ...video, notes: html })}
+            />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function VideosSection({
   videos,
   onChange,
@@ -85,6 +140,8 @@ function VideosSection({
 }) {
   const [url, setUrl] = useState("");
   const [title, setTitle] = useState("");
+  const [path, setPath] = useState("");
+  const [pathTitle, setPathTitle] = useState("");
 
   const addUrl = () => {
     const trimmed = url.trim();
@@ -97,28 +154,33 @@ function VideosSection({
     setTitle("");
   };
 
+  const addPath = () => {
+    const trimmed = path.trim().replace(/^\/+/, "");
+    if (!trimmed) return;
+    onChange([
+      ...videos,
+      {
+        id: genId(),
+        title: pathTitle.trim() || "Video",
+        url: "",
+        provider: "file",
+        storagePath: trimmed,
+      },
+    ]);
+    setPath("");
+    setPathTitle("");
+  };
+
   return (
     <Section title="Videos">
       <div className="flex flex-col gap-2">
         {videos.map((v, i) => (
-          <div key={v.id} className={rowClass}>
-            <div className="min-w-0 flex-1">
-              <input
-                className={inputClass}
-                value={v.title}
-                placeholder="Video title"
-                onChange={(e) =>
-                  onChange(videos.map((x, j) => (j === i ? { ...x, title: e.target.value } : x)))
-                }
-              />
-              <p className="mt-1 truncate text-xs text-muted-foreground">
-                {v.provider} · {v.url}
-              </p>
-            </div>
-            <button className={removeBtn} onClick={() => onChange(videos.filter((_, j) => j !== i))}>
-              Remove
-            </button>
-          </div>
+          <VideoRow
+            key={v.id}
+            video={v}
+            onChange={(next) => onChange(videos.map((x, j) => (j === i ? next : x)))}
+            onRemove={() => onChange(videos.filter((_, j) => j !== i))}
+          />
         ))}
       </div>
 
@@ -147,10 +209,43 @@ function VideosSection({
           onUploaded={(r) =>
             onChange([
               ...videos,
-              { id: genId(), title: r.originalFilename, url: r.url, provider: "file" },
+              {
+                id: genId(),
+                title: r.originalFilename,
+                url: "",
+                provider: "file",
+                storagePath: r.storagePath,
+              },
             ])
           }
         />
+      </div>
+
+      <div className="mt-2 rounded-lg border border-dashed border-border bg-background/60 p-3">
+        <p className="mb-2 text-xs text-muted-foreground">
+          Large video already synced to the bucket? Reference it by its storage path
+          (e.g. <code>lms-media/&lt;hash&gt;.mp4</code>). Learners get a signed URL.
+        </p>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <input
+            className={inputClass}
+            placeholder="Title (optional)"
+            value={pathTitle}
+            onChange={(e) => setPathTitle(e.target.value)}
+          />
+          <input
+            className={inputClass}
+            placeholder="Storage path (e.g. lms-media/abc123.mp4)"
+            value={path}
+            onChange={(e) => setPath(e.target.value)}
+          />
+          <button
+            onClick={addPath}
+            className="shrink-0 rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground transition hover:bg-[#8b1717]"
+          >
+            Add by path
+          </button>
+        </div>
       </div>
     </Section>
   );

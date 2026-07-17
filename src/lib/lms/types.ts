@@ -13,9 +13,21 @@
 export interface VideoItem {
   id: string;
   title: string;
+  /**
+   * Playable URL. For provider "file" videos backed by our media bucket
+   * (`storagePath` set) this is minted as a short-lived signed URL at read time
+   * and is NOT persisted — Firestore stores an empty string for it.
+   */
   url: string;
   provider: "youtube" | "vimeo" | "file";
+  /**
+   * Object path in the media bucket (e.g. `lms-media/<hash>.mp4`) for videos we
+   * host. When present the server serves the video via a time-limited signed URL.
+   */
+  storagePath?: string;
   description?: string;
+  /** Optional rich-text notes (sanitized HTML) shown to learners with the video. */
+  notes?: string;
 }
 
 /** A book: a print-ready PDF (inline viewer + download) or an ePub (download). */
@@ -107,6 +119,8 @@ export interface CourseWithChapters {
 /** Response from the media upload endpoint. */
 export interface MediaUploadResponse {
   url: string;
+  /** Object path in the media bucket, used to mint signed URLs for videos. */
+  storagePath: string;
   contentType: string;
   sizeBytes: number;
   originalFilename: string;

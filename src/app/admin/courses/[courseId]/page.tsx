@@ -107,6 +107,62 @@ function Editor({ courseId }: { courseId: string }) {
 const fieldClass =
   "w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/40";
 
+/**
+ * Primary save button that runs an async action and briefly flips to a green
+ * "Saved ✓" confirmation on success before returning to its idle label.
+ */
+function SaveButton({
+  onClick,
+  idleLabel = "Save Changes",
+  className = "px-4 py-2",
+}: {
+  onClick: () => Promise<void>;
+  idleLabel?: string;
+  className?: string;
+}) {
+  const [status, setStatus] = useState<"idle" | "saving" | "saved">("idle");
+
+  const run = async () => {
+    if (status === "saving") return;
+    setStatus("saving");
+    try {
+      await onClick();
+      setStatus("saved");
+      setTimeout(() => setStatus("idle"), 2000);
+    } catch {
+      setStatus("idle");
+    }
+  };
+
+  const color =
+    status === "saved"
+      ? "bg-success text-white"
+      : "bg-primary text-primary-foreground hover:bg-[#8b1717]";
+
+  return (
+    <button
+      onClick={run}
+      disabled={status === "saving"}
+      className={`inline-flex items-center justify-center gap-1.5 rounded-lg text-sm font-medium shadow-sm transition disabled:opacity-60 ${color} ${className}`}
+    >
+      {status === "saved" && (
+        <svg
+          className="h-4 w-4"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M20 6 9 17l-5-5" />
+        </svg>
+      )}
+      {status === "saving" ? "Saving…" : status === "saved" ? "Saved" : idleLabel}
+    </button>
+  );
+}
+
 function Inner({
   course,
   sections,
@@ -133,7 +189,6 @@ function Inner({
   const [coverImageUrl, setCoverImageUrl] = useState(course.coverImageUrl ?? "");
   const [promoVideoUrl, setPromoVideoUrl] = useState(course.promoVideoUrl ?? "");
   const [aboutContent, setAboutContent] = useState(course.aboutContent ?? "");
-  const [saving, setSaving] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -144,22 +199,17 @@ function Inner({
   };
 
   const saveAbout = async () => {
-    setSaving(true);
-    try {
-      const updated = await updateCourse(courseId, {
-        title,
-        description,
-        category,
-        level,
-        tags,
-        coverImageUrl,
-        promoVideoUrl,
-        aboutContent,
-      });
-      onCourseChange(updated);
-    } finally {
-      setSaving(false);
-    }
+    const updated = await updateCourse(courseId, {
+      title,
+      description,
+      category,
+      level,
+      tags,
+      coverImageUrl,
+      promoVideoUrl,
+      aboutContent,
+    });
+    onCourseChange(updated);
   };
 
   const togglePublish = async () => {
@@ -224,13 +274,7 @@ function Inner({
             >
               {course.isPublished ? "Unpublish" : "Publish"}
             </button>
-            <button
-              onClick={saveAbout}
-              disabled={saving}
-              className="rounded-lg bg-primary px-4 py-1.5 text-sm font-medium text-primary-foreground shadow-sm transition hover:bg-[#8b1717] disabled:opacity-50"
-            >
-              {saving ? "Saving…" : "Save Changes"}
-            </button>
+            <SaveButton onClick={saveAbout} className="px-4 py-1.5" />
           </div>
         </div>
 
@@ -423,13 +467,7 @@ function Inner({
               </label>
 
               <div className="flex justify-end border-t border-border pt-4">
-                <button
-                  onClick={saveAbout}
-                  disabled={saving}
-                  className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm transition hover:bg-[#8b1717] disabled:opacity-50"
-                >
-                  {saving ? "Saving…" : "Save Changes"}
-                </button>
+                <SaveButton onClick={saveAbout} className="px-4 py-2" />
               </div>
             </div>
           </div>
@@ -611,28 +649,18 @@ function CourseContentEditor({
     posters: course.posters,
     materials: course.materials,
   });
-  const [saving, setSaving] = useState(false);
 
   const save = async () => {
-    setSaving(true);
-    try {
-      const updated = await updateCourse(course.id, buckets);
-      onSaved(updated);
-    } finally {
-      setSaving(false);
-    }
+    const updated = await updateCourse(course.id, buckets);
+    onSaved(updated);
   };
 
   return (
     <div className="rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-6">
       <ContentEditor buckets={buckets} onChange={setBuckets} />
-      <button
-        onClick={save}
-        disabled={saving}
-        className="mt-4 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm transition hover:bg-[#8b1717] disabled:opacity-50"
-      >
-        {saving ? "Saving…" : "Save course materials"}
-      </button>
+      <div className="mt-4">
+        <SaveButton onClick={save} idleLabel="Save course materials" />
+      </div>
     </div>
   );
 }
@@ -663,21 +691,14 @@ function SectionCard({
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState(section.title);
   const [description, setDescription] = useState(section.description ?? "");
-  const [saving, setSaving] = useState(false);
 
   const save = async () => {
-    setSaving(true);
-    try {
-      await updateSection(courseId, section.id, { title, description });
-      setEditing(false);
-      onChanged();
-    } finally {
-      setSaving(false);
-    }
+    await updateSection(courseId, section.id, { title, description });
+    setEditing(false);
+    onChanged();
   };
 
   const remove = async () => {
-    if (!confirm(`Delete section "${section.title}"? Its chapters become ungrouped.`)) return;
     await deleteSection(courseId, section.id);
     onChanged();
   };
@@ -737,13 +758,7 @@ function SectionCard({
             />
           </label>
           <div className="flex items-center gap-2">
-            <button
-              onClick={save}
-              disabled={saving}
-              className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm transition hover:bg-[#8b1717] disabled:opacity-50"
-            >
-              {saving ? "Saving…" : "Save section"}
-            </button>
+            <SaveButton onClick={save} idleLabel="Save section" />
             <button
               onClick={remove}
               className="rounded-lg px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
@@ -809,26 +824,19 @@ function ChapterCard({
     posters: chapter.posters,
     materials: chapter.materials,
   });
-  const [saving, setSaving] = useState(false);
 
   const save = async () => {
-    setSaving(true);
-    try {
-      await updateChapter(courseId, chapter.id, {
-        title,
-        description,
-        sectionId,
-        isPublished,
-        ...buckets,
-      });
-      onChanged();
-    } finally {
-      setSaving(false);
-    }
+    await updateChapter(courseId, chapter.id, {
+      title,
+      description,
+      sectionId,
+      isPublished,
+      ...buckets,
+    });
+    onChanged();
   };
 
   const remove = async () => {
-    if (!confirm(`Delete "${chapter.title}"?`)) return;
     await deleteChapter(courseId, chapter.id);
     onChanged();
   };
@@ -918,13 +926,7 @@ function ChapterCard({
           <ContentEditor buckets={buckets} onChange={setBuckets} />
 
           <div className="flex items-center gap-2">
-            <button
-              onClick={save}
-              disabled={saving}
-              className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm transition hover:bg-[#8b1717] disabled:opacity-50"
-            >
-              {saving ? "Saving…" : "Save chapter"}
-            </button>
+            <SaveButton onClick={save} idleLabel="Save chapter" />
             <button
               onClick={remove}
               className="rounded-lg px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50"

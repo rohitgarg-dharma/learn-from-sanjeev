@@ -11,6 +11,7 @@ import {
   type CourseWithChapters,
   type Section,
   type SectionInput,
+  type VideoItem,
 } from "@/lib/lms/types";
 
 /**
@@ -114,10 +115,24 @@ function toChapter(courseId: string, doc: FirebaseFirestore.QueryDocumentSnapsho
   };
 }
 
+/**
+ * For bucket-hosted videos (`storagePath` set) the `url` is a transient signed
+ * URL minted per request, so we never persist it — store an empty string and
+ * force provider "file". External / plain-URL videos are left untouched.
+ */
+function normalizeVideosForStorage(videos: unknown): unknown {
+  if (!Array.isArray(videos)) return videos;
+  return videos.map((v) =>
+    v && typeof v === "object" && typeof (v as VideoItem).storagePath === "string"
+      ? { ...(v as VideoItem), provider: "file", url: "" }
+      : v,
+  );
+}
+
 /** Only copy through fields that were actually provided (partial update). */
 function pickBuckets<T extends CourseInput | ChapterInput>(input: T) {
   const out: FirebaseFirestore.DocumentData = {};
-  if (input.videos !== undefined) out.videos = input.videos;
+  if (input.videos !== undefined) out.videos = normalizeVideosForStorage(input.videos);
   if (input.books !== undefined) out.books = input.books;
   if (input.posters !== undefined) out.posters = input.posters;
   if (input.materials !== undefined) out.materials = input.materials;

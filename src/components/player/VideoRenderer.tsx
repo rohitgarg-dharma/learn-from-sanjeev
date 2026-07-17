@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { VideoItem } from "@/lib/lms/types";
 import { videoEmbedUrl } from "@/lib/lms/content";
+import { RichText } from "@/components/RichText";
 
 /** Renders a chapter/course video list: sub-tabs (if multiple) + a player. */
 export function VideoRenderer({ videos }: { videos: VideoItem[] }) {
@@ -34,6 +35,7 @@ export function VideoRenderer({ videos }: { videos: VideoItem[] }) {
       {video.description && (
         <p className="whitespace-pre-wrap text-sm text-muted-foreground">{video.description}</p>
       )}
+      <RichText html={video.notes} className="mt-1" />
     </div>
   );
 }

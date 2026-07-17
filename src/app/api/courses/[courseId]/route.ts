@@ -2,20 +2,35 @@ import { NextResponse } from "next/server";
 import { isAdminToken } from "@/lib/firebase/admin";
 import { requireUser, requireAdmin } from "@/lib/server/guards";
 import { getCourseWithChapters, updateCourse, deleteCourse } from "@/lib/server/courses";
+import { signVideoItems } from "@/lib/server/media";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 type Ctx = { params: Promise<{ courseId: string }> };
 
-/** Get a course with its chapters. Learners get published content only. */
+/**
+ * Get a course with its chapters. Learners get published content only.
+ * Bucket-hosted videos are served via freshly minted, time-limited signed URLs.
+ */
 export async function GET(request: Request, { params }: Ctx) {
   const auth = await requireUser(request);
   if ("error" in auth) return auth.error;
   const { courseId } = await params;
   const data = await getCourseWithChapters(courseId, isAdminToken(auth.decoded));
   if (!data) return NextResponse.json({ error: "Course not found." }, { status: 404 });
-  return NextResponse.json(data);
+
+  const [courseVideos, chapters] = await Promise.all([
+    signVideoItems(data.course.videos),
+    Promise.all(
+      data.chapters.map(async (c) => ({ ...c, videos: await signVideoItems(c.videos) })),
+    ),
+  ]);
+  return NextResponse.json({
+    ...data,
+    course: { ...data.course, videos: courseVideos },
+    chapters,
+  });
 }
 
 /** Update a course (admin only). */
