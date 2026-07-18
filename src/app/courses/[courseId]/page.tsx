@@ -55,8 +55,12 @@ function Player({ courseId }: { courseId: string }) {
         setCourse(course);
         setSections(sections);
         setChapters(chapters);
-        // Land on the curriculum list, mirroring the Gurukula course page.
-        setSelection({ kind: "curriculum" });
+        // Open straight into the learning view: the sidebar already IS the
+        // curriculum, so land on the first chapter (with its content in the
+        // right panel) rather than an extra curriculum landing screen.
+        if (chapters.length > 0) setSelection({ kind: "chapter", id: chapters[0].id });
+        else if (hasAnyContent(course)) setSelection({ kind: "overview" });
+        else setSelection({ kind: "curriculum" });
       })
       .catch((e) => setError(e.message));
   }, [courseId]);
