@@ -142,6 +142,26 @@ export interface Chapter extends ContentBuckets {
   updatedAt: number | null;
 }
 
+/**
+ * A teacher/instructor ("Acharya"). Stored top-level in `lms_teachers/{id}` and
+ * referenced by courses via `teacherIds` (a course can have many teachers, and a
+ * teacher can appear on many courses).
+ */
+export interface Teacher {
+  id: string;
+  name: string;
+  /** Optional role/subtitle, e.g. "Acharya" or "Sanskrit Scholar". */
+  title?: string;
+  /** Longer description / biography shown to learners. */
+  bio?: string;
+  photoUrl?: string;
+  createdAt: number | null;
+  updatedAt: number | null;
+}
+
+/** Writable fields for creating/updating a teacher (admin). */
+export type TeacherInput = Partial<Pick<Teacher, "name" | "title" | "bio" | "photoUrl">>;
+
 export interface Course extends ContentBuckets {
   id: string;
   title: string;
@@ -153,6 +173,8 @@ export interface Course extends ContentBuckets {
   level?: string;
   /** Discovery tags (normalized to lowercase). */
   tags: string[];
+  /** Ids of the teachers (Acharyas) assigned to this course. */
+  teacherIds: string[];
   /** Optional promo/"about" video URL (YouTube/Vimeo/file). */
   promoVideoUrl?: string;
   /** Longer "About this course" body (plain text, one bullet per line). */
@@ -168,6 +190,8 @@ export interface CourseWithChapters {
   course: Course;
   sections: Section[];
   chapters: Chapter[];
+  /** Resolved teachers for `course.teacherIds`, in assignment order. */
+  teachers: Teacher[];
 }
 
 /** Response from the media upload endpoint. */
@@ -257,6 +281,7 @@ export type CourseInput = Partial<
     | "category"
     | "level"
     | "tags"
+    | "teacherIds"
     | "promoVideoUrl"
     | "aboutContent"
     | "isPublished"

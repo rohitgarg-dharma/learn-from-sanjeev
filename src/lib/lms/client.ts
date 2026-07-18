@@ -9,6 +9,8 @@ import type {
   MediaUploadResponse,
   Section,
   SectionInput,
+  Teacher,
+  TeacherInput,
 } from "@/lib/lms/types";
 
 /**
@@ -148,6 +150,40 @@ export async function updateChapter(
 
 export async function deleteChapter(courseId: string, chapterId: string): Promise<void> {
   const res = await fetch(`/api/courses/${courseId}/chapters/${chapterId}`, {
+    method: "DELETE",
+    headers: await authHeader(),
+  });
+  await jsonOrThrow(res);
+}
+
+// ---------------- Teachers ----------------
+
+/** All teachers (Acharyas). Readable by any signed-in user. */
+export async function fetchTeachers(): Promise<Teacher[]> {
+  const res = await fetch("/api/teachers", { headers: await authHeader() });
+  return (await jsonOrThrow(res)).teachers ?? [];
+}
+
+export async function createTeacher(input: TeacherInput): Promise<Teacher> {
+  const res = await fetch("/api/teachers", {
+    method: "POST",
+    headers: { ...(await authHeader()), "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  return (await jsonOrThrow(res)).teacher as Teacher;
+}
+
+export async function updateTeacher(teacherId: string, input: TeacherInput): Promise<Teacher> {
+  const res = await fetch(`/api/teachers/${teacherId}`, {
+    method: "PATCH",
+    headers: { ...(await authHeader()), "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  return (await jsonOrThrow(res)).teacher as Teacher;
+}
+
+export async function deleteTeacher(teacherId: string): Promise<void> {
+  const res = await fetch(`/api/teachers/${teacherId}`, {
     method: "DELETE",
     headers: await authHeader(),
   });

@@ -8,6 +8,7 @@ import { AppHeader } from "@/components/AppHeader";
 import { ContentEditor } from "@/components/admin/ContentEditor";
 import { BlocksEditor } from "@/components/admin/BlocksEditor";
 import { MediaUploader } from "@/components/admin/MediaUploader";
+import { TeacherSelector } from "@/components/admin/TeacherSelector";
 import {
   fetchCourse,
   updateCourse,
@@ -190,6 +191,7 @@ function Inner({
   const [coverImageUrl, setCoverImageUrl] = useState(course.coverImageUrl ?? "");
   const [promoVideoUrl, setPromoVideoUrl] = useState(course.promoVideoUrl ?? "");
   const [aboutContent, setAboutContent] = useState(course.aboutContent ?? "");
+  const [teacherIds, setTeacherIds] = useState<string[]>(course.teacherIds ?? []);
   const [publishing, setPublishing] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -206,6 +208,7 @@ function Inner({
       category,
       level,
       tags,
+      teacherIds,
       coverImageUrl,
       promoVideoUrl,
       aboutContent,
@@ -385,6 +388,9 @@ function Inner({
                   <span className="text-xs text-muted-foreground">No tags added yet.</span>
                 )}
               </div>
+
+              {/* Teachers */}
+              <TeacherSelector selectedIds={teacherIds} onChange={setTeacherIds} />
 
               <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
                 <label className="flex flex-col gap-1">

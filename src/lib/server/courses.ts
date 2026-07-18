@@ -13,6 +13,7 @@ import {
   type SectionInput,
   type VideoItem,
 } from "@/lib/lms/types";
+import { getTeachersByIds } from "@/lib/server/teachers";
 
 /**
  * Server-only data access (Admin SDK) for the LMS. All course/section/chapter
@@ -64,6 +65,9 @@ function toCourse(doc: FirebaseFirestore.QueryDocumentSnapshot | FirebaseFiresto
     category: data.category ?? undefined,
     level: data.level ?? undefined,
     tags: Array.isArray(data.tags) ? data.tags : [],
+    teacherIds: Array.isArray(data.teacherIds)
+      ? data.teacherIds.filter((t: unknown): t is string => typeof t === "string")
+      : [],
     promoVideoUrl: data.promoVideoUrl ?? undefined,
     aboutContent: data.aboutContent ?? undefined,
     isPublished: data.isPublished === true,
@@ -72,6 +76,16 @@ function toCourse(doc: FirebaseFirestore.QueryDocumentSnapshot | FirebaseFiresto
     updatedAt: ms(data.updatedAt),
     ...buckets(data),
   };
+}
+
+/** Normalize teacher ids to a de-duped array of non-empty strings. */
+function normalizeTeacherIds(ids: unknown): string[] {
+  if (!Array.isArray(ids)) return [];
+  const seen = new Set<string>();
+  for (const id of ids) {
+    if (typeof id === "string" && id.trim()) seen.add(id.trim());
+  }
+  return [...seen].slice(0, 50);
 }
 
 /** Normalize tags to trimmed, lowercased, de-duped strings. */
@@ -176,11 +190,12 @@ export async function getCourseWithChapters(
   const course = await getCourse(courseId);
   if (!course) return null;
   if (!course.isPublished && !includeUnpublished) return null;
-  const [sections, chapters] = await Promise.all([
+  const [sections, chapters, teachers] = await Promise.all([
     listSections(courseId),
     listChapters(courseId, includeUnpublished),
+    getTeachersByIds(course.teacherIds),
   ]);
-  return { course, sections, chapters };
+  return { course, sections, chapters, teachers };
 }
 
 export async function createCourse(input: CourseInput): Promise<Course> {
@@ -192,6 +207,7 @@ export async function createCourse(input: CourseInput): Promise<Course> {
     category: input.category ?? null,
     level: input.level ?? null,
     tags: normalizeTags(input.tags),
+    teacherIds: normalizeTeacherIds(input.teacherIds),
     promoVideoUrl: input.promoVideoUrl ?? null,
     aboutContent: input.aboutContent ?? null,
     isPublished: input.isPublished === true,
@@ -215,6 +231,7 @@ export async function updateCourse(courseId: string, input: CourseInput): Promis
   if (input.category !== undefined) patch.category = input.category || null;
   if (input.level !== undefined) patch.level = input.level || null;
   if (input.tags !== undefined) patch.tags = normalizeTags(input.tags);
+  if (input.teacherIds !== undefined) patch.teacherIds = normalizeTeacherIds(input.teacherIds);
   if (input.promoVideoUrl !== undefined) patch.promoVideoUrl = input.promoVideoUrl || null;
   if (input.aboutContent !== undefined) patch.aboutContent = input.aboutContent || null;
   if (input.isPublished !== undefined) patch.isPublished = input.isPublished === true;
