@@ -6,6 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { LoginScreen } from "@/components/LoginScreen";
 import { AppHeader } from "@/components/AppHeader";
 import { CourseTeachers } from "@/components/course/CourseTeachers";
+import { RichText } from "@/components/RichText";
 import { fetchCourse, fetchProgress } from "@/lib/lms/client";
 import { detectProvider, hasAnyContent, videoEmbedUrl } from "@/lib/lms/content";
 import type { Chapter, Course, Section, Teacher } from "@/lib/lms/types";
@@ -71,10 +72,15 @@ function Landing({ courseId }: { courseId: string }) {
     ? `/courses/${courseId}/learn?chapter=${targetChapter.id}`
     : `/courses/${courseId}/learn`;
 
-  const aboutLines = (course?.aboutContent ?? "")
+  // `aboutContent` is now authored as rich text (HTML). Older courses may still
+  // hold plain text with one bullet per line — detect and render those as a list.
+  const about = course?.aboutContent ?? "";
+  const aboutIsHtml = /<[a-z][\s\S]*>/i.test(about);
+  const aboutLines = about
     .split("\n")
     .map((l) => l.trim())
     .filter(Boolean);
+  const hasAbout = aboutIsHtml ? about.trim().length > 0 : aboutLines.length > 0;
 
   if (error) {
     return (
@@ -220,11 +226,9 @@ function Landing({ courseId }: { courseId: string }) {
         </div>
       </section>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_320px]">
-        {/* Main column */}
-        <div className="flex flex-col gap-6">
-          {/* About video */}
-          {course.promoVideoUrl && (
+      <div className="mt-6 flex flex-col gap-6">
+        {/* About video */}
+        {course.promoVideoUrl && (
             <section className="rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
               <h2 className="mb-3 text-lg font-semibold">About this course</h2>
               <div className="aspect-video w-full overflow-hidden rounded-xl bg-black">
@@ -244,10 +248,12 @@ function Landing({ courseId }: { courseId: string }) {
           )}
 
           {/* About text */}
-          {aboutLines.length > 0 && (
+          {hasAbout && (
             <section className="rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
               {!course.promoVideoUrl && <h2 className="mb-3 text-lg font-semibold">About this course</h2>}
-              {aboutLines.length === 1 ? (
+              {aboutIsHtml ? (
+                <RichText html={about} />
+              ) : aboutLines.length === 1 ? (
                 <p className="text-sm text-muted-foreground">{aboutLines[0]}</p>
               ) : (
                 <ul className="flex flex-col gap-2">
@@ -274,14 +280,11 @@ function Landing({ courseId }: { courseId: string }) {
               learnHref={`/courses/${courseId}/learn`}
             />
           </section>
-        </div>
 
-        {/* Aside */}
-        <aside className="flex flex-col gap-6 lg:sticky lg:top-20 lg:h-fit">
+          {/* Teachers, shown below the curriculum */}
           <CourseTeachers teachers={teachers} />
-        </aside>
-      </div>
-    </main>
+        </div>
+      </main>
   );
 }
 

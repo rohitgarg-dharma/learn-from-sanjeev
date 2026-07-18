@@ -9,6 +9,7 @@ import { ContentEditor } from "@/components/admin/ContentEditor";
 import { BlocksEditor } from "@/components/admin/BlocksEditor";
 import { MediaUploader } from "@/components/admin/MediaUploader";
 import { TeacherSelector } from "@/components/admin/TeacherSelector";
+import { RichTextEditor } from "@/components/admin/RichTextEditor";
 import {
   fetchCourse,
   updateCourse,
@@ -462,16 +463,14 @@ function Inner({
                 </span>
               </label>
 
-              <label className="flex flex-col gap-1">
+              <div className="flex flex-col gap-1">
                 <span className="text-sm font-medium">About This Course</span>
-                <textarea
-                  className={fieldClass}
-                  rows={6}
+                <RichTextEditor
                   value={aboutContent}
-                  onChange={(e) => setAboutContent(e.target.value)}
-                  placeholder={"Detailed description shown to learners.\nTip: put one point per line for a bulleted list."}
+                  onChange={setAboutContent}
+                  placeholder="Detailed description shown to learners. Use headings, bullet lists, links and more."
                 />
-              </label>
+              </div>
 
               <div className="flex justify-end border-t border-border pt-4">
                 <SaveButton onClick={saveAbout} className="px-4 py-2" />
