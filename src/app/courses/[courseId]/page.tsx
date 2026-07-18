@@ -121,14 +121,8 @@ function Player({ courseId }: { courseId: string }) {
   }
 
   const select = (s: Selection) => {
-    // Completing a chapter and moving on marks the one you're leaving as done.
-    if (
-      selection?.kind === "chapter" &&
-      !(s.kind === "chapter" && s.id === selection.id) &&
-      !completed.has(selection.id)
-    ) {
-      applyCompletion(selection.id, true);
-    }
+    // Completion is explicit (the "Mark as complete" toggle) — merely navigating
+    // between chapters must never mark them done.
     setSelection(s);
     setSidebarOpen(false);
   };
