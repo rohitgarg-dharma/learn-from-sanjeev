@@ -40,7 +40,14 @@ export async function POST(request: Request) {
 
   const thread = await createThread(
     { uid: decoded.uid, name: decoded.name ?? decoded.email ?? "User", photo: decoded.picture ?? null },
-    { courseId: body.courseId ?? null, title: body.title, body: body.body, attachments: body.attachments },
+    {
+      courseId: body.courseId ?? null,
+      sectionId: body.sectionId ?? null,
+      chapterId: body.chapterId ?? null,
+      title: body.title,
+      body: body.body,
+      attachments: body.attachments,
+    },
   );
   return NextResponse.json({ thread }, { status: 201 });
 }

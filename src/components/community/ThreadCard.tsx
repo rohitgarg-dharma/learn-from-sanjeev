@@ -32,6 +32,11 @@ export function ThreadCard({ thread, showCourse }: { thread: ForumThread; showCo
       </div>
 
       <h3 className="mt-3 font-semibold leading-snug">{thread.title}</h3>
+      {(thread.sectionTitle || thread.chapterTitle) && (
+        <p className="mt-1 text-xs text-muted-foreground">
+          {[thread.sectionTitle, thread.chapterTitle].filter(Boolean).join(" › ")}
+        </p>
+      )}
       <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{thread.body}</p>
 
       {thread.attachments.length > 0 && (

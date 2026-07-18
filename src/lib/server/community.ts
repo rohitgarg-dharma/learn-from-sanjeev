@@ -69,6 +69,10 @@ function toThread(doc: FirebaseFirestore.DocumentSnapshot): ForumThread {
     id: doc.id,
     courseId: typeof data.courseId === "string" ? data.courseId : null,
     courseTitle: typeof data.courseTitle === "string" ? data.courseTitle : null,
+    sectionId: typeof data.sectionId === "string" ? data.sectionId : null,
+    sectionTitle: typeof data.sectionTitle === "string" ? data.sectionTitle : null,
+    chapterId: typeof data.chapterId === "string" ? data.chapterId : null,
+    chapterTitle: typeof data.chapterTitle === "string" ? data.chapterTitle : null,
     authorUid: data.authorUid ?? "",
     authorName: data.authorName ?? "Anonymous",
     authorPhoto: data.authorPhoto ?? null,
@@ -135,17 +139,46 @@ export async function createThread(author: Author, input: ThreadInput): Promise<
 
   let courseId: string | null = null;
   let courseTitle: string | null = null;
+  let sectionId: string | null = null;
+  let sectionTitle: string | null = null;
+  let chapterId: string | null = null;
+  let chapterTitle: string | null = null;
+
   if (input.courseId) {
-    const course = await adminDb.collection(COURSES).doc(input.courseId).get();
+    const courseRef = adminDb.collection(COURSES).doc(input.courseId);
+    const course = await courseRef.get();
     if (course.exists) {
       courseId = input.courseId;
       courseTitle = (course.data()?.title as string) ?? null;
+
+      // A chapter pins its own section, so resolve it first and derive the
+      // section from it; fall back to an explicitly chosen section otherwise.
+      if (input.chapterId) {
+        const chapter = await courseRef.collection("chapters").doc(input.chapterId).get();
+        if (chapter.exists) {
+          chapterId = chapter.id;
+          chapterTitle = (chapter.data()?.title as string) ?? null;
+          const chSection = chapter.data()?.sectionId;
+          if (typeof chSection === "string") sectionId = chSection;
+        }
+      }
+      if (!sectionId && input.sectionId) sectionId = input.sectionId;
+
+      if (sectionId) {
+        const section = await courseRef.collection("sections").doc(sectionId).get();
+        if (section.exists) sectionTitle = (section.data()?.title as string) ?? null;
+        else sectionId = null; // stale/invalid section id
+      }
     }
   }
 
   const ref = await threadsCol().add({
     courseId,
     courseTitle,
+    sectionId,
+    sectionTitle,
+    chapterId,
+    chapterTitle,
     authorUid: author.uid,
     authorName: author.name,
     authorPhoto: author.photo,

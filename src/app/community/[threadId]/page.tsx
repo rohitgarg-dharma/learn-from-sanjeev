@@ -114,6 +114,13 @@ function ThreadDetail({ threadId }: { threadId: string }) {
         </div>
 
         <h1 className="mt-4 text-xl font-bold leading-snug">{thread.title}</h1>
+        {(thread.sectionTitle || thread.chapterTitle) && (
+          <p className="mt-1 text-xs text-muted-foreground">
+            {[thread.courseTitle, thread.sectionTitle, thread.chapterTitle]
+              .filter(Boolean)
+              .join(" › ")}
+          </p>
+        )}
         <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-foreground/90">{thread.body}</p>
 
         {thread.attachments.length > 0 && (

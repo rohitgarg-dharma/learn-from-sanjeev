@@ -198,6 +198,11 @@ export interface ForumThread {
   id: string;
   courseId: string | null;
   courseTitle: string | null;
+  /** Optional narrowing: the section (lesson) and chapter the question is about. */
+  sectionId: string | null;
+  sectionTitle: string | null;
+  chapterId: string | null;
+  chapterTitle: string | null;
   authorUid: string;
   authorName: string;
   authorPhoto: string | null;
@@ -229,6 +234,8 @@ export interface ThreadWithReplies {
 /** Payload to create a thread. */
 export interface ThreadInput {
   courseId?: string | null;
+  sectionId?: string | null;
+  chapterId?: string | null;
   title: string;
   body: string;
   attachments?: Attachment[];
