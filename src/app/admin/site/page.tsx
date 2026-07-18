@@ -6,8 +6,15 @@ import { useAuth } from "@/contexts/AuthContext";
 import { LoginScreen } from "@/components/LoginScreen";
 import { AppHeader } from "@/components/AppHeader";
 import { RichTextEditor } from "@/components/admin/RichTextEditor";
+import { useSiteSettings } from "@/contexts/SiteSettingsContext";
 import { fetchSiteContent, updateSiteContent } from "@/lib/lms/client";
-import { SITE_PAGES, EMPTY_SITE_CONTENT, type SiteContent, type SiteContentKey } from "@/lib/lms/site-pages";
+import {
+  SITE_PAGES,
+  EMPTY_SITE_CONTENT,
+  DEFAULT_SITE_TITLE,
+  type SiteContent,
+  type SiteContentKey,
+} from "@/lib/lms/site-pages";
 
 export default function AdminSitePage() {
   const { user, loading, isAdmin } = useAuth();
@@ -40,6 +47,7 @@ export default function AdminSitePage() {
 }
 
 function Editor() {
+  const { refresh } = useSiteSettings();
   const [content, setContent] = useState<SiteContent | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<"idle" | "saving" | "saved">("idle");
@@ -60,6 +68,7 @@ function Editor() {
     try {
       const updated = await updateSiteContent(content);
       setContent(updated);
+      refresh(); // update header/footer/tab title app-wide
       setStatus("saved");
       setTimeout(() => setStatus("idle"), 2000);
     } catch (e) {
@@ -91,6 +100,23 @@ function Editor() {
         </p>
       ) : (
         <div className="flex flex-col gap-6">
+          <section className="rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
+            <h2 className="text-lg font-semibold">Site title</h2>
+            <p className="mb-3 text-sm text-muted-foreground">
+              Shown in the header, footer and browser tab across the whole site.
+            </p>
+            <textarea
+              value={content.siteTitle}
+              onChange={(e) => setContent({ ...content, siteTitle: e.target.value })}
+              rows={2}
+              placeholder={DEFAULT_SITE_TITLE}
+              className="w-full resize-none rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/40"
+            />
+            <p className="mt-1 text-xs text-muted-foreground">
+              Leave empty to use “{DEFAULT_SITE_TITLE}”.
+            </p>
+          </section>
+
           {SITE_PAGES.map((p) => (
             <section key={p.slug} className="rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
               <div className="mb-3 flex items-center justify-between gap-2">

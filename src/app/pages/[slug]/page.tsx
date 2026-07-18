@@ -1,25 +1,18 @@
 "use client";
 
-import { use, useEffect, useState } from "react";
+import { use } from "react";
 import Link from "next/link";
 import { AppHeader } from "@/components/AppHeader";
 import { RichText } from "@/components/RichText";
-import { fetchSiteContent } from "@/lib/lms/client";
-import { SITE_PAGES, type SiteContent } from "@/lib/lms/site-pages";
+import { useSiteSettings } from "@/contexts/SiteSettingsContext";
+import { SITE_PAGES } from "@/lib/lms/site-pages";
 
 /** Renders an admin-authored informational page (Terms, Contact Us, etc.). */
 export default function SiteInfoPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params);
   const page = SITE_PAGES.find((p) => p.slug === slug);
 
-  const [content, setContent] = useState<SiteContent | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    fetchSiteContent()
-      .then(setContent)
-      .catch((e) => setError(e.message));
-  }, []);
+  const { content } = useSiteSettings();
 
   const html = page && content ? content[page.key] : "";
   const hasContent = (html ?? "").trim().length > 0;
@@ -35,8 +28,6 @@ export default function SiteInfoPage({ params }: { params: Promise<{ slug: strin
               This page doesn’t exist.
             </p>
           </>
-        ) : error ? (
-          <p className="text-sm text-red-600">{error}</p>
         ) : content === null ? (
           <p className="text-sm text-muted-foreground">
             <span className="animate-pulse">Loading…</span>

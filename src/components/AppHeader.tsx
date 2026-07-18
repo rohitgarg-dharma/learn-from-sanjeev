@@ -2,10 +2,16 @@
 
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSiteSettings } from "@/contexts/SiteSettingsContext";
 
 /** Top bar shown on learner and admin pages: brand, admin link, sign-out. */
 export function AppHeader({ subtitle }: { subtitle?: string }) {
   const { user, isAdmin, logout } = useAuth();
+  const { siteTitle } = useSiteSettings();
+  // Accent the last word of the brand (e.g. "Learn from Sanjeev").
+  const words = siteTitle.split(" ");
+  const lead = words.slice(0, -1).join(" ");
+  const last = words[words.length - 1];
 
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-card/80 backdrop-blur supports-[backdrop-filter]:bg-card/60">
@@ -20,7 +26,8 @@ export function AppHeader({ subtitle }: { subtitle?: string }) {
           </span>
           <span className="min-w-0">
             <span className="block truncate text-lg font-bold leading-tight tracking-tight">
-              Learn from <span className="text-primary">Sanjeev</span>
+              {lead && `${lead} `}
+              <span className="text-primary">{last}</span>
             </span>
             {subtitle && (
               <span className="block truncate text-xs text-muted-foreground">{subtitle}</span>

@@ -2,6 +2,7 @@
 
 import { useEffect, type ReactNode } from "react";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { SiteSettingsProvider } from "@/contexts/SiteSettingsContext";
 import { getFirebaseAnalytics } from "@/lib/firebase/client";
 
 export function Providers({ children }: { children: ReactNode }) {
@@ -11,5 +12,9 @@ export function Providers({ children }: { children: ReactNode }) {
     void getFirebaseAnalytics();
   }, []);
 
-  return <AuthProvider>{children}</AuthProvider>;
+  return (
+    <AuthProvider>
+      <SiteSettingsProvider>{children}</SiteSettingsProvider>
+    </AuthProvider>
+  );
 }

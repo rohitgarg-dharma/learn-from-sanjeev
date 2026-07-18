@@ -3,13 +3,24 @@
  * text; they surface in the footer on every page and render at /pages/<slug>.
  */
 export interface SiteContent {
+  /** Site / brand name shown in the header, footer and browser tab. */
+  siteTitle: string;
   contactUs: string;
   terms: string;
   disclaimer: string;
   refund: string;
 }
 
-export type SiteContentKey = keyof SiteContent;
+/** Rich-text page keys (excludes the plain-text siteTitle). */
+export type SiteContentKey = "contactUs" | "terms" | "disclaimer" | "refund";
+
+/** Shown when no custom site title has been configured. */
+export const DEFAULT_SITE_TITLE = "Learn from Sanjeev";
+
+/** Effective site title, falling back to the default when unset. */
+export function resolveSiteTitle(content?: Pick<SiteContent, "siteTitle"> | null): string {
+  return content?.siteTitle?.trim() || DEFAULT_SITE_TITLE;
+}
 
 export interface SitePage {
   slug: string;
@@ -26,6 +37,7 @@ export const SITE_PAGES: SitePage[] = [
 ];
 
 export const EMPTY_SITE_CONTENT: SiteContent = {
+  siteTitle: "",
   contactUs: "",
   terms: "",
   disclaimer: "",
