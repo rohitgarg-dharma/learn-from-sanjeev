@@ -163,13 +163,68 @@ export async function fetchAdminStats(): Promise<AdminStats> {
 
 // ---------------- Media upload (admin) ----------------
 
-export async function uploadMedia(file: File): Promise<MediaUploadResponse> {
-  const form = new FormData();
-  form.append("file", file);
-  const res = await fetch("/api/admin/media", {
+interface DirectUpload {
+  uploadUrl: string;
+  storagePath: string;
+  url: string;
+  contentType: string;
+}
+
+/**
+ * Uploads a file to Cloud Storage. The server hands back a resumable upload
+ * session and the browser streams the bytes **directly** to Storage — so large
+ * files (multi-GB video/audio) never hit the API route's body/memory limits.
+ * `onProgress` receives a 0..1 fraction as the upload proceeds.
+ */
+export async function uploadMedia(
+  file: File,
+  onProgress?: (fraction: number) => void,
+): Promise<MediaUploadResponse> {
+  const res = await fetch("/api/admin/media/upload-url", {
     method: "POST",
-    headers: await authHeader(),
-    body: form,
+    headers: { ...(await authHeader()), "Content-Type": "application/json" },
+    body: JSON.stringify({
+      filename: file.name,
+      contentType: file.type || "application/octet-stream",
+    }),
   });
-  return jsonOrThrow(res) as Promise<MediaUploadResponse>;
+  const { uploadUrl, storagePath, url, contentType } = (await jsonOrThrow(res)) as DirectUpload;
+
+  await putToSession(uploadUrl, file, contentType, onProgress);
+
+  return {
+    url,
+    storagePath,
+    contentType,
+    sizeBytes: file.size,
+    originalFilename: file.name,
+  };
+}
+
+/** Streams the file to a GCS resumable session URL with upload progress. */
+function putToSession(
+  sessionUrl: string,
+  file: File,
+  contentType: string,
+  onProgress?: (fraction: number) => void,
+): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("PUT", sessionUrl, true);
+    xhr.setRequestHeader("Content-Type", contentType);
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) onProgress?.(e.loaded / e.total);
+    };
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        onProgress?.(1);
+        resolve();
+      } else {
+        reject(new Error(`Upload failed (${xhr.status}).`));
+      }
+    };
+    xhr.onerror = () => reject(new Error("Network error during upload."));
+    xhr.onabort = () => reject(new Error("Upload cancelled."));
+    xhr.send(file);
+  });
 }

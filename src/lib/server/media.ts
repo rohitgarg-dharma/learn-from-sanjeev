@@ -155,6 +155,61 @@ export async function uploadMedia(
   };
 }
 
+export interface DirectUpload {
+  /** Resumable session URL the browser PUTs the file bytes to (bypasses us). */
+  uploadUrl: string;
+  /** Final object path in the media bucket. */
+  storagePath: string;
+  /** Durable, browser-loadable download URL (token) for the object. */
+  url: string;
+  contentType: string;
+}
+
+/**
+ * Starts a resumable upload session so the browser can stream a file (including
+ * multi-GB video/audio) **directly** to Cloud Storage — the bytes never pass
+ * through our API route, sidestepping App Hosting's request-body/memory limits.
+ *
+ * We can't content-dedupe here (we never see the bytes), so a name already taken
+ * gets a short random suffix rather than clobbering the existing object. The
+ * download token is baked into the object metadata up front, so the returned
+ * `url` is valid the moment the upload finalizes — no extra round trip.
+ *
+ * `origin` must be the browser's origin so GCS allows the cross-origin PUT
+ * (bucket CORS must also permit it).
+ */
+export async function createDirectUpload(
+  originalFilename: string,
+  contentType: string,
+  origin: string,
+): Promise<DirectUpload> {
+  const type = contentType || "application/octet-stream";
+  if (!isAllowed(type)) throw new MediaError(`Unsupported file type: ${type}`);
+
+  const mediaBucket = await bucket();
+  const { base, ext } = sanitizeFilename(originalFilename);
+  let objectPath = `${MEDIA_PREFIX}/${base}${ext}`;
+  const [taken] = await mediaBucket.file(objectPath).exists();
+  if (taken) objectPath = `${MEDIA_PREFIX}/${base}-${randomUUID().slice(0, 8)}${ext}`;
+
+  const token = randomUUID();
+  const file = mediaBucket.file(objectPath);
+  const [uploadUrl] = await file.createResumableUpload({
+    origin,
+    metadata: {
+      contentType: type,
+      metadata: { originalFilename, firebaseStorageDownloadTokens: token },
+    },
+  });
+
+  return {
+    uploadUrl,
+    storagePath: objectPath,
+    url: downloadUrl(mediaBucket.name, objectPath, token),
+    contentType: type,
+  };
+}
+
 /** How long a learner's signed video URL stays valid. */
 const SIGNED_URL_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
 
