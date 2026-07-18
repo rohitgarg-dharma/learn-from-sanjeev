@@ -137,6 +137,20 @@ body {
   margin: 1.2em 0;
 }
 
+/* Fullscreen file preview: fill the screen and let the media use all of it. */
+.fs-target:fullscreen {
+  width: 100vw;
+  height: 100vh;
+  background: #000;
+}
+.fs-target:fullscreen iframe,
+.fs-target:fullscreen img {
+  width: 100%;
+  height: 100%;
+  max-height: none;
+  object-fit: contain;
+}
+
 /* TipTap editor surface + empty-state placeholder. */
 .rich-content.ProseMirror:focus {
   outline: none;

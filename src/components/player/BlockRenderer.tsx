@@ -4,6 +4,7 @@ import type { ChapterBlock } from "@/lib/lms/types";
 import { videoEmbedUrl } from "@/lib/lms/content";
 import { formatSize } from "@/lib/community/format";
 import { RichText } from "@/components/RichText";
+import { FilePreview } from "./FilePreview";
 
 /** Renders a chapter's ordered content blocks top-to-bottom for learners. */
 export function BlockRenderer({ blocks }: { blocks?: ChapterBlock[] }) {
@@ -67,8 +68,11 @@ function Block({ block }: { block: ChapterBlock }) {
       if (!block.url) return null;
       return (
         <figure className="flex flex-col gap-2">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={block.url} alt={block.caption ?? ""} className="w-full rounded-xl" />
+          <FilePreview
+            url={block.url}
+            name={block.caption || "Image"}
+            contentType="image/*"
+          />
           {block.caption && (
             <figcaption className="text-center text-xs text-muted-foreground">
               {block.caption}
@@ -80,11 +84,11 @@ function Block({ block }: { block: ChapterBlock }) {
     case "file":
       if (!block.url) return null;
       return (
-        <DownloadLink
+        <FilePreview
           url={block.url}
-          label={block.name || "Download file"}
+          name={block.name || "File"}
+          contentType={block.contentType}
           sizeBytes={block.sizeBytes}
-          prominent
         />
       );
   }

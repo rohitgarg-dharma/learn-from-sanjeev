@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { BookItem } from "@/lib/lms/types";
+import { useFullscreen } from "./useFullscreen";
 
 /** Books list: PDFs get an inline viewer + download; ePub is download-only. */
 export function BookRenderer({ books }: { books: BookItem[] }) {
@@ -16,6 +17,7 @@ export function BookRenderer({ books }: { books: BookItem[] }) {
 
 function BookCard({ book }: { book: BookItem }) {
   const [open, setOpen] = useState(false);
+  const { ref, toggle } = useFullscreen<HTMLDivElement>();
   const isPdf = book.format === "pdf";
 
   return (
@@ -51,6 +53,14 @@ function BookCard({ book }: { book: BookItem }) {
               {open ? "Hide" : "Read"}
             </button>
           )}
+          {isPdf && open && (
+            <button
+              onClick={toggle}
+              className="rounded-lg border border-border px-3 py-1.5 text-sm font-medium transition hover:bg-accent"
+            >
+              Fullscreen
+            </button>
+          )}
           <a
             href={book.url}
             download
@@ -63,7 +73,7 @@ function BookCard({ book }: { book: BookItem }) {
         </div>
       </div>
       {isPdf && open && (
-        <div className="border-t border-border">
+        <div ref={ref} className="fs-target border-t border-border bg-black">
           <iframe src={book.url} title={book.title} className="h-[70vh] w-full" />
         </div>
       )}
