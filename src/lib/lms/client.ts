@@ -40,6 +40,28 @@ export async function fetchCourse(courseId: string): Promise<CourseWithChapters>
   return jsonOrThrow(res) as Promise<CourseWithChapters>;
 }
 
+// ---------------- Progress (learner) ----------------
+
+/** The signed-in learner's completed chapter ids for a course. */
+export async function fetchProgress(courseId: string): Promise<string[]> {
+  const res = await fetch(`/api/courses/${courseId}/progress`, { headers: await authHeader() });
+  return (await jsonOrThrow(res)).completedChapterIds ?? [];
+}
+
+/** Mark a chapter complete/incomplete; returns the updated completed set. */
+export async function markChapterComplete(
+  courseId: string,
+  chapterId: string,
+  completed = true,
+): Promise<string[]> {
+  const res = await fetch(`/api/courses/${courseId}/progress`, {
+    method: "POST",
+    headers: { ...(await authHeader()), "Content-Type": "application/json" },
+    body: JSON.stringify({ chapterId, completed }),
+  });
+  return (await jsonOrThrow(res)).completedChapterIds ?? [];
+}
+
 // ---------------- Courses (admin) ----------------
 
 export async function createCourse(input: CourseInput): Promise<Course> {

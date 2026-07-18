@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { isAdminToken } from "@/lib/firebase/admin";
 import { requireUser, requireAdmin } from "@/lib/server/guards";
 import { getCourseWithChapters, updateCourse, deleteCourse } from "@/lib/server/courses";
-import { signVideoItems } from "@/lib/server/media";
+import { signVideoItems, signChapterBlocks } from "@/lib/server/media";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -23,7 +23,13 @@ export async function GET(request: Request, { params }: Ctx) {
   const [courseVideos, chapters] = await Promise.all([
     signVideoItems(data.course.videos),
     Promise.all(
-      data.chapters.map(async (c) => ({ ...c, videos: await signVideoItems(c.videos) })),
+      data.chapters.map(async (c) => {
+        const [videos, blocks] = await Promise.all([
+          signVideoItems(c.videos),
+          signChapterBlocks(c.blocks),
+        ]);
+        return { ...c, videos, blocks };
+      }),
     ),
   ]);
   return NextResponse.json({

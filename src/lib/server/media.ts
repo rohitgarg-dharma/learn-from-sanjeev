@@ -1,14 +1,15 @@
 import "server-only";
 import { createHash, randomUUID } from "crypto";
-import { extname } from "path";
+import { basename, extname } from "path";
 import { adminStorage } from "@/lib/firebase/admin";
 import { getAppConfig } from "@/lib/server/app-config";
-import type { MediaUploadResponse, VideoItem } from "@/lib/lms/types";
+import type { ChapterBlock, MediaUploadResponse, VideoItem } from "@/lib/lms/types";
 
 /**
  * Server-only media handling (Admin SDK). The browser posts a file to the admin
- * upload route, which streams it here. Files are content-addressed by SHA256 so
- * re-uploading identical bytes de-dupes to the same object.
+ * upload route, which streams it here. Objects keep their original (sanitized)
+ * filename; re-uploading identical bytes reuses the same object, and a name
+ * already taken by different content gets a short checksum suffix.
  *
  * Access: objects are served via a Firebase Storage download URL carrying an
  * unguessable token (works with uniform bucket-level access, no signing SA
@@ -16,6 +17,18 @@ import type { MediaUploadResponse, VideoItem } from "@/lib/lms/types";
  */
 const MEDIA_PREFIX = "lms-media";
 const MAX_BYTES = 200 * 1024 * 1024; // 200 MB
+
+/** Turn a filename into a safe, readable object base + extension. */
+function sanitizeFilename(filename: string): { base: string; ext: string } {
+  const ext = extname(filename).toLowerCase().slice(0, 12);
+  const base =
+    basename(filename, extname(filename))
+      .normalize("NFKD")
+      .replace(/[^a-zA-Z0-9._-]+/g, "-")
+      .replace(/^[-.]+|[-.]+$/g, "")
+      .slice(0, 80) || "file";
+  return { base, ext };
+}
 
 const ALLOWED_PREFIXES = ["image/", "video/", "audio/"];
 const ALLOWED_EXACT = new Set([
@@ -67,19 +80,48 @@ export async function uploadMedia(
   if (!isAllowed(type)) throw new MediaError(`Unsupported file type: ${type}`);
 
   const checksum = createHash("sha256").update(buffer).digest("hex");
-  const ext = extname(originalFilename).toLowerCase().slice(0, 12);
-  const objectPath = `${MEDIA_PREFIX}/${checksum}${ext}`;
   const mediaBucket = await bucket();
-  const file = mediaBucket.file(objectPath);
+  // Keep the original, human-readable filename; only fall back to a short
+  // checksum suffix if a *different* file already claims that name.
+  const { base, ext } = sanitizeFilename(originalFilename);
+  const primaryPath = `${MEDIA_PREFIX}/${base}${ext}`;
+  const primary = mediaBucket.file(primaryPath);
+  const [primaryExists] = await primary.exists();
 
+  let objectPath = primaryPath;
+  if (primaryExists) {
+    const [meta] = await primary.getMetadata();
+    if (meta.metadata?.checksum === checksum) {
+      // Identical bytes already uploaded under this name — reuse it.
+      const existingToken = meta.metadata?.firebaseStorageDownloadTokens as string | undefined;
+      const token = existingToken ?? randomUUID();
+      if (!existingToken) {
+        await primary.setMetadata({
+          metadata: { ...meta.metadata, firebaseStorageDownloadTokens: token },
+        });
+      }
+      return {
+        url: downloadUrl(mediaBucket.name, primaryPath, token),
+        storagePath: primaryPath,
+        contentType: type,
+        sizeBytes: buffer.length,
+        originalFilename,
+      };
+    }
+    // Same name, different content — disambiguate with a short checksum suffix.
+    objectPath = `${MEDIA_PREFIX}/${base}-${checksum.slice(0, 8)}${ext}`;
+  }
+
+  const file = mediaBucket.file(objectPath);
   const [exists] = await file.exists();
   if (exists) {
-    // Reuse the existing object (and its token) — content-addressed de-dupe.
     const [meta] = await file.getMetadata();
     const existingToken = meta.metadata?.firebaseStorageDownloadTokens as string | undefined;
     const token = existingToken ?? randomUUID();
     if (!existingToken) {
-      await file.setMetadata({ metadata: { firebaseStorageDownloadTokens: token } });
+      await file.setMetadata({
+        metadata: { ...meta.metadata, firebaseStorageDownloadTokens: token },
+      });
     }
     return {
       url: downloadUrl(mediaBucket.name, objectPath, token),
@@ -151,6 +193,26 @@ export async function signVideoItems(videos: VideoItem[]): Promise<VideoItem[]> 
       } catch (err) {
         console.warn(`[media] could not sign ${v.storagePath}:`, err);
         return v;
+      }
+    }),
+  );
+}
+
+/**
+ * Signs the `url` of any bucket-hosted chapter block (video/audio/image/file
+ * with a `storagePath`). Rich-text and external blocks pass through untouched.
+ */
+export async function signChapterBlocks(blocks: ChapterBlock[]): Promise<ChapterBlock[]> {
+  if (!Array.isArray(blocks) || blocks.length === 0) return blocks ?? [];
+  return Promise.all(
+    blocks.map(async (b) => {
+      const path = "storagePath" in b ? b.storagePath : undefined;
+      if (!path) return b;
+      try {
+        return { ...b, url: await signedReadUrl(path) };
+      } catch (err) {
+        console.warn(`[media] could not sign block ${path}:`, err);
+        return b;
       }
     }),
   );

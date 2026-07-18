@@ -107,6 +107,7 @@ function toChapter(courseId: string, doc: FirebaseFirestore.QueryDocumentSnapsho
     sectionId: typeof data.sectionId === "string" ? data.sectionId : null,
     title: data.title ?? "",
     description: data.description ?? undefined,
+    blocks: Array.isArray(data.blocks) ? data.blocks : [],
     isPublished: data.isPublished === true,
     sortOrder: typeof data.sortOrder === "number" ? data.sortOrder : 0,
     createdAt: ms(data.createdAt),
@@ -126,6 +127,20 @@ function normalizeVideosForStorage(videos: unknown): unknown {
     v && typeof v === "object" && typeof (v as VideoItem).storagePath === "string"
       ? { ...(v as VideoItem), provider: "file", url: "" }
       : v,
+  );
+}
+
+/**
+ * Chapter content blocks: for bucket-hosted blocks (`storagePath` set) the
+ * `url` is a transient signed URL minted per request, so we blank it before
+ * persisting — the signed URL is regenerated on read.
+ */
+function normalizeBlocksForStorage(blocks: unknown): FirebaseFirestore.DocumentData[] {
+  if (!Array.isArray(blocks)) return [];
+  return blocks.map((b) =>
+    b && typeof b === "object" && typeof (b as { storagePath?: unknown }).storagePath === "string"
+      ? { ...(b as object), url: "" }
+      : (b as object),
   );
 }
 
@@ -287,6 +302,7 @@ export async function createChapter(courseId: string, input: ChapterInput): Prom
     sectionId: input.sectionId ?? null,
     isPublished: input.isPublished === true,
     sortOrder: typeof input.sortOrder === "number" ? input.sortOrder : Date.now(),
+    blocks: normalizeBlocksForStorage(input.blocks),
     ...EMPTY_BUCKETS,
     ...pickBuckets(input),
     createdAt: now,
@@ -309,6 +325,7 @@ export async function updateChapter(
   if (input.sectionId !== undefined) patch.sectionId = input.sectionId ?? null;
   if (input.isPublished !== undefined) patch.isPublished = input.isPublished === true;
   if (input.sortOrder !== undefined) patch.sortOrder = input.sortOrder;
+  if (input.blocks !== undefined) patch.blocks = normalizeBlocksForStorage(input.blocks);
   Object.assign(patch, pickBuckets(input));
   await ref.update(patch);
   return getChapter(courseId, chapterId);

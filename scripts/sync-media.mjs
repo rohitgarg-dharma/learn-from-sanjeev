@@ -4,8 +4,9 @@
  * 200 MB upload limit) into the LMS Cloud Storage bucket, and print the storage
  * path to paste into the course editor ("Add by path").
  *
- * Objects are content-addressed by SHA-256 (matching the in-app uploader), so
- * re-running on identical bytes is a no-op.
+ * Objects keep their original (sanitized) filename, matching the in-app
+ * uploader. Re-running on identical bytes is a no-op; if a different file
+ * already claims the name, a short checksum suffix is added.
  *
  * Usage:
  *   node scripts/sync-media.mjs <file> [--key <serviceAccount.json>] \
@@ -42,6 +43,17 @@ function parseArgs(argv) {
     else out._.push(a);
   }
   return out;
+}
+
+function sanitizeFilename(filename) {
+  const ext = extname(filename).toLowerCase().slice(0, 12);
+  const base =
+    basename(filename, extname(filename))
+      .normalize("NFKD")
+      .replace(/[^a-zA-Z0-9._-]+/g, "-")
+      .replace(/^[-.]+|[-.]+$/g, "")
+      .slice(0, 80) || "file";
+  return { base, ext };
 }
 
 function sha256(file) {
@@ -95,11 +107,27 @@ async function main() {
 
   console.log(`Hashing ${basename(file)} (${sizeMb} MB)…`);
   const checksum = await sha256(file);
-  const objectPath = `${prefix}/${checksum}${ext}`;
-  const object = bucket.file(objectPath);
 
-  const [exists] = await object.exists();
-  if (exists) {
+  // Keep the original filename; only add a checksum suffix if a *different*
+  // file already claims that name.
+  const { base } = sanitizeFilename(basename(file));
+  let objectPath = `${prefix}/${base}${ext}`;
+  const primary = bucket.file(objectPath);
+  const [primaryExists] = await primary.exists();
+  let alreadyUploaded = false;
+  if (primaryExists) {
+    const [meta] = await primary.getMetadata();
+    if (meta.metadata?.checksum === checksum) {
+      alreadyUploaded = true;
+    } else {
+      objectPath = `${prefix}/${base}-${checksum.slice(0, 8)}${ext}`;
+      const [suffixExists] = await bucket.file(objectPath).exists();
+      alreadyUploaded = suffixExists;
+    }
+  }
+
+  const object = bucket.file(objectPath);
+  if (alreadyUploaded) {
     console.log(`Already in gs://${bucketName}/${objectPath} — skipping upload.`);
   } else {
     console.log(`Uploading to gs://${bucketName}/${objectPath} …`);

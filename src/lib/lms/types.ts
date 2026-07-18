@@ -64,6 +64,58 @@ export interface ContentBuckets {
   materials: MaterialItem[];
 }
 
+/**
+ * A single block in a chapter's ordered content flow. Chapters can mix any
+ * number of these in any order (video, text, audio, image, downloadable file).
+ * Bucket-hosted blocks carry a `storagePath` and are served to learners via a
+ * short-lived signed URL (the persisted `url` is blanked for those).
+ */
+export type BlockType = "richtext" | "video" | "audio" | "image" | "file";
+
+interface BlockBase {
+  id: string;
+  type: BlockType;
+}
+export interface RichTextBlock extends BlockBase {
+  type: "richtext";
+  html: string;
+}
+export interface VideoBlock extends BlockBase {
+  type: "video";
+  title?: string;
+  url: string;
+  provider: "youtube" | "vimeo" | "file";
+  storagePath?: string;
+}
+export interface AudioBlock extends BlockBase {
+  type: "audio";
+  title?: string;
+  url: string;
+  storagePath?: string;
+  contentType?: string;
+  sizeBytes?: number;
+}
+export interface ImageBlock extends BlockBase {
+  type: "image";
+  url: string;
+  storagePath?: string;
+  caption?: string;
+}
+export interface FileBlock extends BlockBase {
+  type: "file";
+  name: string;
+  url: string;
+  storagePath?: string;
+  contentType?: string;
+  sizeBytes?: number;
+}
+export type ChapterBlock =
+  | RichTextBlock
+  | VideoBlock
+  | AudioBlock
+  | ImageBlock
+  | FileBlock;
+
 /** An ordered grouping of chapters within a course. */
 export interface Section {
   id: string;
@@ -82,6 +134,8 @@ export interface Chapter extends ContentBuckets {
   sectionId: string | null;
   title: string;
   description?: string;
+  /** Ordered content blocks rendered top-to-bottom in the player. */
+  blocks: ChapterBlock[];
   sortOrder: number;
   isPublished: boolean;
   createdAt: number | null;
@@ -216,6 +270,7 @@ export type ChapterInput = Partial<
     | "sectionId"
     | "isPublished"
     | "sortOrder"
+    | "blocks"
     | "videos"
     | "books"
     | "posters"

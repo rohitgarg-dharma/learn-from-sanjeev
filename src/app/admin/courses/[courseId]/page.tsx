@@ -6,6 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { LoginScreen } from "@/components/LoginScreen";
 import { AppHeader } from "@/components/AppHeader";
 import { ContentEditor } from "@/components/admin/ContentEditor";
+import { BlocksEditor } from "@/components/admin/BlocksEditor";
 import { MediaUploader } from "@/components/admin/MediaUploader";
 import {
   fetchCourse,
@@ -17,7 +18,7 @@ import {
   updateChapter,
   deleteChapter,
 } from "@/lib/lms/client";
-import type { Chapter, Course, Section } from "@/lib/lms/types";
+import type { Chapter, ChapterBlock, Course, Section } from "@/lib/lms/types";
 
 const LEVELS = ["Beginner", "Intermediate", "Advanced", "All levels"];
 
@@ -818,6 +819,7 @@ function ChapterCard({
   const [description, setDescription] = useState(chapter.description ?? "");
   const [sectionId, setSectionId] = useState<string | null>(chapter.sectionId ?? null);
   const [isPublished, setIsPublished] = useState(chapter.isPublished);
+  const [blocks, setBlocks] = useState<ChapterBlock[]>(chapter.blocks ?? []);
   const [buckets, setBuckets] = useState({
     videos: chapter.videos,
     books: chapter.books,
@@ -831,6 +833,7 @@ function ChapterCard({
       description,
       sectionId,
       isPublished,
+      blocks,
       ...buckets,
     });
     onChanged();
@@ -922,6 +925,8 @@ function ChapterCard({
             />
             <span className="text-sm font-medium">Published</span>
           </label>
+
+          <BlocksEditor blocks={blocks} onChange={setBlocks} />
 
           <ContentEditor buckets={buckets} onChange={setBuckets} />
 
