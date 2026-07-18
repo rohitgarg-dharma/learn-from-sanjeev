@@ -227,50 +227,54 @@ function Landing({ courseId }: { courseId: string }) {
       </section>
 
       <div className="mt-6 flex flex-col gap-6">
-        {/* About video */}
-        {course.promoVideoUrl && (
-            <section className="rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
-              <h2 className="mb-3 text-lg font-semibold">About this course</h2>
-              <div className="aspect-video w-full overflow-hidden rounded-xl bg-black">
-                {promoEmbed ? (
-                  <iframe
-                    src={promoEmbed}
-                    title={course.title}
-                    className="h-full w-full"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                  />
+        {/* About this course — the heading is a section label kept separate
+            from the content, with the video and description in their own cards. */}
+        {(course.promoVideoUrl || hasAbout) && (
+          <section className="flex flex-col gap-3">
+            <h2 className="text-lg font-semibold">About this course</h2>
+
+            {course.promoVideoUrl && (
+              <div className="rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
+                <div className="aspect-video w-full overflow-hidden rounded-xl bg-black">
+                  {promoEmbed ? (
+                    <iframe
+                      src={promoEmbed}
+                      title={course.title}
+                      className="h-full w-full"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    />
+                  ) : (
+                    <video src={course.promoVideoUrl} controls className="h-full w-full" preload="metadata" />
+                  )}
+                </div>
+              </div>
+            )}
+
+            {hasAbout && (
+              <div className="rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
+                {aboutIsHtml ? (
+                  <RichText html={about} />
+                ) : aboutLines.length === 1 ? (
+                  <p className="text-sm text-muted-foreground">{aboutLines[0]}</p>
                 ) : (
-                  <video src={course.promoVideoUrl} controls className="h-full w-full" preload="metadata" />
+                  <ul className="flex flex-col gap-2">
+                    {aboutLines.map((line, i) => (
+                      <li key={i} className="flex gap-2 text-sm text-muted-foreground">
+                        <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+                        <span>{line}</span>
+                      </li>
+                    ))}
+                  </ul>
                 )}
               </div>
-            </section>
-          )}
-
-          {/* About text */}
-          {hasAbout && (
-            <section className="rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
-              {!course.promoVideoUrl && <h2 className="mb-3 text-lg font-semibold">About this course</h2>}
-              {aboutIsHtml ? (
-                <RichText html={about} />
-              ) : aboutLines.length === 1 ? (
-                <p className="text-sm text-muted-foreground">{aboutLines[0]}</p>
-              ) : (
-                <ul className="flex flex-col gap-2">
-                  {aboutLines.map((line, i) => (
-                    <li key={i} className="flex gap-2 text-sm text-muted-foreground">
-                      <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
-                      <span>{line}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </section>
-          )}
+            )}
+          </section>
+        )}
 
           {/* Curriculum */}
-          <section className="rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
-            <h2 className="mb-4 text-lg font-semibold">Curriculum</h2>
+          <section className="flex flex-col gap-3">
+            <h2 className="text-lg font-semibold">Curriculum</h2>
             <CurriculumPreview
               courseId={courseId}
               sections={sections}
@@ -282,7 +286,14 @@ function Landing({ courseId }: { courseId: string }) {
           </section>
 
           {/* Teachers, shown below the curriculum */}
-          <CourseTeachers teachers={teachers} />
+          {teachers.length > 0 && (
+            <section className="flex flex-col gap-3">
+              <h2 className="text-lg font-semibold">
+                {teachers.length > 1 ? "Acharyas" : "Acharya"}
+              </h2>
+              <CourseTeachers teachers={teachers} headingHidden />
+            </section>
+          )}
         </div>
       </main>
   );

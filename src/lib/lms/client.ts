@@ -12,6 +12,7 @@ import type {
   Teacher,
   TeacherInput,
 } from "@/lib/lms/types";
+import type { SiteContent } from "@/lib/lms/site-pages";
 
 /**
  * Browser-side fetch wrappers. Every call attaches the signed-in user's Firebase
@@ -154,6 +155,24 @@ export async function deleteChapter(courseId: string, chapterId: string): Promis
     headers: await authHeader(),
   });
   await jsonOrThrow(res);
+}
+
+// ---------------- Site content (footer pages) ----------------
+
+/** Public: the site's informational pages. No auth needed. */
+export async function fetchSiteContent(): Promise<SiteContent> {
+  const res = await fetch("/api/site-content");
+  return (await jsonOrThrow(res)).content as SiteContent;
+}
+
+/** Admin: update one or more site pages. */
+export async function updateSiteContent(input: Partial<SiteContent>): Promise<SiteContent> {
+  const res = await fetch("/api/site-content", {
+    method: "PATCH",
+    headers: { ...(await authHeader()), "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  return (await jsonOrThrow(res)).content as SiteContent;
 }
 
 // ---------------- Teachers ----------------
